@@ -1,55 +1,19 @@
-﻿using TMS.Domain.Entities; // Ensure this using statement is present
+﻿using System;
+using System.ComponentModel.DataAnnotations.Schema; // For [Column]
 
 namespace TMS.Domain.Entities
 {
-    public class Location : BaseEntity
+    public class Location : BaseEntity 
     {
-        public string Name { get; private set; }
-        public string Type { get; private set; } // e.g., "City", "Bus Terminal", "Airport"
-        public string Address { get; private set; }
-        public double? Latitude { get; private set; }
-        public double? Longitude { get; private set; }
 
-        // Private constructor for EF Core and controlled creation via factory methods
-        private Location() { }
 
-        // Factory method to create a new Location (enforces invariants)
-        public static Location Create(string name, string type, string address, double? latitude, double? longitude)
-        {
-            // Perform domain validation here
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Location name cannot be empty.", nameof(name));
-            if (string.IsNullOrWhiteSpace(type))
-                throw new ArgumentException("Location type cannot be empty.", nameof(type));
+        public string Name { get; set; }
+        public string Type { get; set; } // e.g., 'City', 'Terminal', 'Bus Stop'
+        public string Address { get; set; }
+        //public decimal? Latitude { get; set; } // Nullable, as per schema design
+        //public decimal? Longitude { get; set; } // Nullable, as per schema design
 
-            return new Location
-            {
-                Id = Guid.NewGuid(),
-                Name = name,
-                Type = type,
-                Address = address,
-                Latitude = latitude,
-                Longitude = longitude,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-
-        // Method to update properties of an existing Location (enforces invariants)
-        public void Update(string name, string type, string address, double? latitude, double? longitude)
-        {
-            // Perform domain validation before updating
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Location name cannot be empty.", nameof(name));
-            if (string.IsNullOrWhiteSpace(type))
-                throw new ArgumentException("Location type cannot be empty.", nameof(type));
-
-            Name = name;
-            Type = type;
-            Address = address;
-            Latitude = latitude;
-            Longitude = longitude;
-            UpdatedAt = DateTime.UtcNow;
-        }
+        // Navigation property for TicketCounters at this location
+        public ICollection<TicketCounter> TicketCounters { get; set; }
     }
 }

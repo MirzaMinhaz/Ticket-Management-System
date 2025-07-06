@@ -1,31 +1,30 @@
-using Microsoft.OpenApi.Models;
-using TMS.Application; // To use AddApplicationServices extension method
-using TMS.Infrastructure; // To use AddInfrastructureServices extension method
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
+using TMS.Application;
+using TMS.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Order here generally doesn't matter for registration, but conventions are helpful.
-builder.Services.AddApplicationServices(); // Registers your ILocationService
-builder.Services.AddInfrastructureServices(builder.Configuration); // Registers DbContext, Repositories
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Ticket Management System API", Version = "v1" });
-});
+builder.Services.AddSwaggerGen();
 
-// Configure CORS for frontend access
+// Add your custom service extensions for Application and Infrastructure layers
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
+// Configure CORS (Cross-Origin Resource Sharing)
+// This is essential for your Next.js frontend to talk to your backend API
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.WithOrigins("http://localhost:3000") // This MUST be your Next.js app's development URL
-                            .AllowAnyHeader()
-                            .AllowAnyMethod()
-                            .AllowCredentials()); // Allow cookies, auth headers etc.
+        builder => builder.WithOrigins("http://localhost:4200") // Your Next.js app URL
+                          .AllowAnyHeader()
+                          .AllowAnyMethod());
 });
-
 
 var app = builder.Build();
 
@@ -33,15 +32,15 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TMS.WebAPI v1"));
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-// Use the CORS policy - must be before UseAuthorization and MapControllers
+// Use CORS policy
 app.UseCors("AllowSpecificOrigin");
 
-app.UseAuthorization(); // If you implement authentication later, this is important
+app.UseAuthorization();
 
 app.MapControllers();
 

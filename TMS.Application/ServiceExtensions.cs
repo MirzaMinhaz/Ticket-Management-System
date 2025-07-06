@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System.Reflection; // For Assembly.GetExecutingAssembly()
-using TMS.Application.Interfaces.Services; // Add this using
-using TMS.Application.Services;       // Add this using
+using System.Reflection;
+using TMS.Application.Interfaces.Services;
+using TMS.Application.Services;
 
 namespace TMS.Application
 {
@@ -11,11 +11,10 @@ namespace TMS.Application
         {
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
-            // Register your Application Services
+            // Register Application Services
             services.AddScoped<ILocationService, LocationService>();
-
-            // You would register other application services here as well
-            // services.AddScoped<IOperatorService, OperatorService>();
+            services.AddScoped<ITicketCounterService, TicketCounterService>(); // NEW
+            // Add other application services here
         }
     }
 }

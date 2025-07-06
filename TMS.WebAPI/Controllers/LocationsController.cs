@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMS.Application.DTOs;
-using TMS.Application.Interfaces.Services; // Add this using
+using TMS.Application.Interfaces.Services;
 
 namespace TMS.WebAPI.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("api/[controller]")] // e.g., /api/Locations
     public class LocationsController : ControllerBase
     {
         private readonly ILocationService _locationService;
@@ -15,110 +18,88 @@ namespace TMS.WebAPI.Controllers
             _locationService = locationService;
         }
 
+        // GET: api/Locations
         [HttpGet]
-        [ProducesResponseType(typeof(List<LocationDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAllLocations()
+        public async Task<ActionResult<IEnumerable<LocationDto>>> GetLocations()
         {
             var locations = await _locationService.GetAllLocationsAsync();
             return Ok(locations);
         }
 
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(LocationDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetLocationById(Guid id)
+        // GET: api/Locations/5
+        [HttpGet("{locationId}")] // Use locationId in route
+        public async Task<ActionResult<LocationDto>> GetLocation(Guid locationId) // Use locationId parameter
         {
-            var location = await _locationService.GetLocationByIdAsync(id);
+            var location = await _locationService.GetLocationByIdAsync(locationId);
+
             if (location == null)
             {
-                return NotFound($"Location with ID {id} not found.");
+                return NotFound();
             }
+
             return Ok(location);
         }
 
+        // POST: api/Locations
         [HttpPost]
-        [ProducesResponseType(typeof(LocationDto), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateLocation([FromBody] LocationDto locationDto)
+        public async Task<ActionResult<LocationDto>> PostLocation(CreateLocationDto locationDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); // Basic model validation based on DTO attributes
-            }
-
-            try
-            {
-                var createdLocation = await _locationService.CreateLocationAsync(locationDto);
-                // Return 201 Created and the location of the new resource
-                return CreatedAtAction(nameof(GetLocationById), new { id = createdLocation.Id }, createdLocation);
-            }
-            catch (ArgumentException ex) // Catch domain/application validation errors
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                // Log the exception for debugging
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the location.");
-            }
+            var newLocation = await _locationService.CreateLocationAsync(locationDto);
+            // Return 201 CreatedAtAction with the new resource's ID
+            return CreatedAtAction(nameof(GetLocation), new { locationId = newLocation.LocationId }, newLocation);
         }
 
-        [HttpPut("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] LocationDto locationDto)
+        // PUT: api/Locations/5
+        [HttpPut("{locationId}")] // Use locationId in route
+        public async Task<IActionResult> PutLocation(Guid locationId, UpdateLocationDto locationDto) // Use locationId parameter
         {
-            if (id != locationDto.Id)
-            {
-                return BadRequest("ID in URL does not match ID in body.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            // You might want to check if the ID in the DTO matches the route ID,
+            // but for PUT, often the route ID is the authoritative one.
 
             try
             {
-                await _locationService.UpdateLocationAsync(locationDto);
-                return NoContent(); // 204 No Content for successful update
+                await _locationService.UpdateLocationAsync(locationId, locationDto);
             }
-            catch (KeyNotFoundException ex)
+            catch (ApplicationException ex) // Catch custom exception for not found
             {
-                return NotFound(new { message = ex.Message });
+                if (ex.Message.Contains("not found")) // A simple check, better with custom exception types
+                {
+                    return NotFound();
+                }
+                throw; // Re-throw other exceptions
             }
-            catch (ArgumentException ex)
+            catch (Exception)
             {
-                return BadRequest(new { message = ex.Message });
+                // Log the exception
+                return StatusCode(500, "An error occurred while updating the location.");
             }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the location.");
-            }
+
+            return NoContent(); // 204 No Content for successful update
         }
 
-        [HttpDelete("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteLocation(Guid id)
+        // DELETE: api/Locations/5
+        [HttpDelete("{locationId}")] // Use locationId in route
+        public async Task<IActionResult> DeleteLocation(Guid locationId) // Use locationId parameter
         {
             try
             {
-                await _locationService.DeleteLocationAsync(id);
-                return NoContent(); // 204 No Content for successful deletion
+                await _locationService.DeleteLocationAsync(locationId);
             }
-            catch (KeyNotFoundException ex)
+            catch (ApplicationException ex)
             {
-                return NotFound(new { message = ex.Message });
+                if (ex.Message.Contains("not found"))
+                {
+                    return NotFound();
+                }
+                throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the location.");
+                // Log the exception
+                return StatusCode(500, "An error occurred while deleting the location.");
             }
+
+            return NoContent();
         }
     }
 }

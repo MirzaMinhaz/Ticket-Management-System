@@ -9,11 +9,6 @@ namespace TMS.Infrastructure.Persistence.Repositories
         {
         }
 
-        // Implement Location-specific methods defined in ILocationRepository here if any
-        // Example:
-        // public async Task<Location?> GetLocationByNameAsync(string name)
-        // {
-        //     return await _dbContext.Locations.FirstOrDefaultAsync(l => l.Name == name);
-        // }
+        // Location-specific repository methods can be added here
     }
 }

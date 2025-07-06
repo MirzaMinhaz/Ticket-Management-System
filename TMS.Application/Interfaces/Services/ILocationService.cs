@@ -1,13 +1,16 @@
-﻿using TMS.Application.DTOs;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using TMS.Application.DTOs;
 
 namespace TMS.Application.Interfaces.Services
 {
     public interface ILocationService
     {
-        Task<List<LocationDto>> GetAllLocationsAsync();
-        Task<LocationDto?> GetLocationByIdAsync(Guid id);
-        Task<LocationDto> CreateLocationAsync(LocationDto locationDto);
-        Task UpdateLocationAsync(LocationDto locationDto);
-        Task DeleteLocationAsync(Guid id);
+        Task<IEnumerable<LocationDto>> GetAllLocationsAsync();
+        Task<LocationDto> GetLocationByIdAsync(Guid locationId); // Renamed parameter
+        Task<LocationDto> CreateLocationAsync(CreateLocationDto locationDto);
+        Task UpdateLocationAsync(Guid locationId, UpdateLocationDto locationDto); // Renamed parameter
+        Task DeleteLocationAsync(Guid locationId); // Renamed parameter
     }
 }

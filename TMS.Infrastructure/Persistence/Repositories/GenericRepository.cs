@@ -1,43 +1,62 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 using TMS.Application.Interfaces.Persistence;
 using TMS.Domain.Entities;
 
 namespace TMS.Infrastructure.Persistence.Repositories
 {
-    public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
+    public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : BaseEntity
     {
         protected readonly TicketManagementDbContext _dbContext;
+        protected readonly DbSet<TEntity> _dbSet;
 
         public GenericRepository(TicketManagementDbContext dbContext)
         {
             _dbContext = dbContext;
+            _dbSet = _dbContext.Set<TEntity>();
         }
 
-        public async Task<T?> GetByIdAsync(Guid id)
+        public async Task<TEntity> GetByIdAsync(Guid id)
         {
-            return await _dbContext.Set<T>().FindAsync(id);
+            return await _dbSet.FindAsync(id);
         }
 
-        public async Task<IReadOnlyList<T>> GetAllAsync()
+        public async Task<IReadOnlyList<TEntity>> GetAllAsync()
         {
-            return await _dbContext.Set<T>().ToListAsync();
+            return await _dbSet.ToListAsync();
         }
 
-        public async Task AddAsync(T entity)
+        public async Task<IReadOnlyList<TEntity>> GetWhereAsync(Expression<Func<TEntity, bool>> predicate)
         {
-            await _dbContext.Set<T>().AddAsync(entity);
+            return await _dbSet.Where(predicate).ToListAsync();
         }
 
-        public async Task UpdateAsync(T entity)
+        public async Task<TEntity> AddAsync(TEntity entity)
         {
-            // If the entity is already tracked by DbContext, EF Core will detect changes on SaveChanges.
-            // If it's a detached entity, attach it and mark as modified.
+            await _dbSet.AddAsync(entity);
+            return entity;
+        }
+
+        public Task UpdateAsync(TEntity entity)
+        {
+            _dbSet.Attach(entity);
             _dbContext.Entry(entity).State = EntityState.Modified;
+            return Task.CompletedTask;
         }
 
-        public async Task DeleteAsync(T entity)
+        public Task DeleteAsync(TEntity entity)
         {
-            _dbContext.Set<T>().Remove(entity);
+            _dbSet.Remove(entity);
+            return Task.CompletedTask;
+        }
+
+        public async Task<int> CountAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbSet.CountAsync(predicate);
         }
     }
 }
