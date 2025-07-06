@@ -12,5 +12,6 @@ namespace TMS.Application.Interfaces.Services
         Task<LocationDto> CreateLocationAsync(CreateLocationDto locationDto);
         Task UpdateLocationAsync(Guid locationId, UpdateLocationDto locationDto); // Renamed parameter
         Task DeleteLocationAsync(Guid locationId); // Renamed parameter
+        Task<bool> LocationExistsAsync(string name, string type);
     }
 }

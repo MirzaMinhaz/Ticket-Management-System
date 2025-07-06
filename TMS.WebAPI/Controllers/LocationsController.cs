@@ -40,6 +40,18 @@ namespace TMS.WebAPI.Controllers
             return Ok(location);
         }
 
+        [HttpGet("exists")]
+        public async Task<ActionResult<bool>> CheckLocationExists([FromQuery] string name, [FromQuery] string type)
+        {
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
+            {
+                return BadRequest("Name and Type parameters are required.");
+            }
+
+            var exists = await _locationService.LocationExistsAsync(name, type);
+            return Ok(exists);
+        }
+
         // POST: api/Locations
         [HttpPost]
         public async Task<ActionResult<LocationDto>> PostLocation(CreateLocationDto locationDto)

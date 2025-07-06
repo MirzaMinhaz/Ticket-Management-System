@@ -15,5 +15,6 @@ namespace TMS.Application.Interfaces.Persistence
         Task UpdateAsync(TEntity entity);
         Task DeleteAsync(TEntity entity);
         Task<int> CountAsync(Expression<Func<TEntity, bool>> predicate);
+        Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);
     }
 }

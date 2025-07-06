@@ -58,5 +58,11 @@ namespace TMS.Infrastructure.Persistence.Repositories
         {
             return await _dbSet.CountAsync(predicate);
         }
+
+        public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            // Access the DbSet<T> for the current entity type and apply the predicate
+            return await _dbContext.Set<TEntity>().AnyAsync(predicate);
+        }
     }
 }

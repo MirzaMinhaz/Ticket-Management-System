@@ -1,17 +1,20 @@
-﻿using AutoMapper;
+﻿// TMS.Application/Services/LocationService.cs
+using AutoMapper;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMS.Application.DTOs;
-using TMS.Application.Interfaces.Persistence;
+using TMS.Application.Interfaces.Persistence; // Assuming this is where IUnitOfWork is
 using TMS.Application.Interfaces.Services;
 using TMS.Domain.Entities;
+using System.Linq; // Needed for ToLower() if not already there
+using Microsoft.EntityFrameworkCore; // Needed for AnyAsync if your repository uses it
 
 namespace TMS.Application.Services
 {
     public class LocationService : ILocationService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork; // Your actual dependency
         private readonly IMapper _mapper;
 
         public LocationService(IUnitOfWork unitOfWork, IMapper mapper)
@@ -46,13 +49,11 @@ namespace TMS.Application.Services
             var existingLocation = await _unitOfWork.Locations.GetByIdAsync(locationId);
             if (existingLocation == null)
             {
-                // Optionally throw a custom not found exception
                 throw new ApplicationException($"Location with ID {locationId} not found.");
             }
 
-            // Map updated properties from DTO to existing entity
             _mapper.Map(locationDto, existingLocation);
-            existingLocation.LastModifiedAt = DateTime.UtcNow; // Update timestamp
+            // existingLocation.LastModifiedAt = DateTime.UtcNow; // This is handled by DbContext SaveChanges override
 
             await _unitOfWork.Locations.UpdateAsync(existingLocation);
             await _unitOfWork.CompleteAsync();
@@ -68,6 +69,17 @@ namespace TMS.Application.Services
 
             await _unitOfWork.Locations.DeleteAsync(locationToDelete);
             await _unitOfWork.CompleteAsync();
+        }
+
+        // MODIFIED: LocationExistsAsync to use _unitOfWork.Locations
+        public async Task<bool> LocationExistsAsync(string name, string type)
+        {
+            // Assuming _unitOfWork.Locations is an IQueryable<Location> or has an AnyAsync method that accepts a predicate.
+            // If your repository doesn't have an AnyAsync, you might need to add it to your IGenericRepository
+            // or fetch all and filter in memory (less efficient for large datasets).
+            return await _unitOfWork.Locations.AnyAsync(l =>
+                l.Name.ToLower() == name.ToLower() &&
+                l.Type.ToLower() == type.ToLower());
         }
     }
 }
