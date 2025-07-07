@@ -74,12 +74,11 @@ namespace TMS.Application.Services
         // MODIFIED: LocationExistsAsync to use _unitOfWork.Locations
         public async Task<bool> LocationExistsAsync(string name, string type)
         {
-            // Assuming _unitOfWork.Locations is an IQueryable<Location> or has an AnyAsync method that accepts a predicate.
-            // If your repository doesn't have an AnyAsync, you might need to add it to your IGenericRepository
-            // or fetch all and filter in memory (less efficient for large datasets).
+            // Assuming your database's collation is case-insensitive.
+            // If not, you might need to specify it explicitly in the DB context or use Option 2.
             return await _unitOfWork.Locations.AnyAsync(l =>
-                l.Name.ToLower() == name.ToLower() &&
-                l.Type.ToLower() == type.ToLower());
+                l.Name == name &&
+                l.Type == type);
         }
     }
 }
