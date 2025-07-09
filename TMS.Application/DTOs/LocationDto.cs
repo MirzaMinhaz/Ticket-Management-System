@@ -1,32 +1,31 @@
-﻿using System;
+﻿// TMS.Application/DTOs/LocationDto.cs
+using System; // For DateTime
+using System.ComponentModel.DataAnnotations; // <<<--- THIS MUST BE PRESENT
 
 namespace TMS.Application.DTOs
 {
     public class LocationDto
     {
-        public Guid LocationId { get; set; } // Renamed from Id
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string Address { get; set; }
-        //public decimal? Latitude { get; set; } // Nullable
-        //public decimal? Longitude { get; set; } // Nullable
-    }
+        public int Id { get; set; }
 
-    public class CreateLocationDto
-    {
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string Address { get; set; }
-        //public decimal? Latitude { get; set; }
-        //public decimal? Longitude { get; set; }
-    }
+        [Required(ErrorMessage = "Location code is required.")]
+        [StringLength(10, ErrorMessage = "Location code cannot exceed 10 characters.")]
+        public string LocationCode { get; set; }
 
-    public class UpdateLocationDto
-    {
+        [Required(ErrorMessage = "Name is required.")]
+        [StringLength(100, ErrorMessage = "Location name cannot exceed 100 characters.")]
         public string Name { get; set; }
+
+        [Required(ErrorMessage = "Type is required.")]
+        [StringLength(50, ErrorMessage = "Location type cannot exceed 50 characters.")]
         public string Type { get; set; }
+
+        [StringLength(250, ErrorMessage = "Address cannot exceed 250 characters.")]
         public string Address { get; set; }
-        //public decimal? Latitude { get; set; }
-        //public decimal? Longitude { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastModifiedAt { get; set; }
+        public string CreatedBy { get; set; }
+        public string LastModifiedBy { get; set; }
     }
 }

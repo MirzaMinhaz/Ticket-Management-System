@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System;
+﻿// TMS.WebAPI/Controllers/TicketCountersController.cs
+using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TMS.Application.DTOs;
+using TMS.Application.DTOs; // Ensure TicketCounter DTOs are available
 using TMS.Application.Interfaces.Services;
+using TMS.Application.Exceptions;
 
 namespace TMS.WebAPI.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/v1/[controller]")]
     public class TicketCountersController : ControllerBase
     {
         private readonly ITicketCounterService _ticketCounterService;
@@ -18,95 +19,122 @@ namespace TMS.WebAPI.Controllers
             _ticketCounterService = ticketCounterService;
         }
 
-        // GET: api/TicketCounters
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TicketCounterDto>>> GetTicketCounters()
+        [ProducesResponseType(typeof(IEnumerable<TicketCounterDto>), 200)]
+        public async Task<ActionResult<IEnumerable<TicketCounterDto>>> Get()
         {
             var ticketCounters = await _ticketCounterService.GetAllTicketCountersAsync();
             return Ok(ticketCounters);
         }
 
-        // GET: api/TicketCounters/{ticketCounterId}
-        [HttpGet("{ticketCounterId}")]
-        public async Task<ActionResult<TicketCounterDto>> GetTicketCounter(Guid ticketCounterId)
-        {
-            var ticketCounter = await _ticketCounterService.GetTicketCounterByIdAsync(ticketCounterId);
-
-            if (ticketCounter == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(ticketCounter);
-        }
-
-        // GET: api/TicketCounters/ByLocation/{locationId}
-        [HttpGet("ByLocation/{locationId}")]
-        public async Task<ActionResult<IEnumerable<TicketCounterDto>>> GetTicketCountersByLocation(Guid locationId)
+        // <<<--- NEW ENDPOINT FOR GETTING COUNTERS BY LOCATION ID
+        [HttpGet("byLocation/{locationId}")]
+        [ProducesResponseType(typeof(IEnumerable<TicketCounterDto>), 200)]
+        [ProducesResponseType(404)] // Or 200 with empty list if no counters
+        public async Task<ActionResult<IEnumerable<TicketCounterDto>>> GetTicketCountersByLocation(int locationId)
         {
             var ticketCounters = await _ticketCounterService.GetTicketCountersByLocationAsync(locationId);
-            if (ticketCounters == null || !ticketCounters.Any())
+            if (ticketCounters == null || !((List<TicketCounterDto>)ticketCounters).Any()) // Check if the list is empty
             {
-                return NotFound($"No ticket counters found for Location ID {locationId}.");
+                // Return 200 OK with an empty list, as it's not an error if a location has no counters
+                return Ok(new List<TicketCounterDto>());
             }
             return Ok(ticketCounters);
         }
 
 
-        // POST: api/TicketCounters
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(TicketCounterDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<TicketCounterDto>> Get(int id)
+        {
+            try
+            {
+                var ticketCounter = await _ticketCounterService.GetTicketCounterByIdAsync(id);
+                return Ok(ticketCounter);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        [HttpGet("code/{counterCode}")]
+        [ProducesResponseType(typeof(TicketCounterDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<TicketCounterDto>> GetByCode(string counterCode)
+        {
+            try
+            {
+                var ticketCounter = await _ticketCounterService.GetTicketCounterByCodeAsync(counterCode);
+                return Ok(ticketCounter);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
         [HttpPost]
-        public async Task<ActionResult<TicketCounterDto>> PostTicketCounter(CreateTicketCounterDto ticketCounterDto)
-        {
-            var newTicketCounter = await _ticketCounterService.CreateTicketCounterAsync(ticketCounterDto);
-            return CreatedAtAction(nameof(GetTicketCounter), new { ticketCounterId = newTicketCounter.TicketCounterId }, newTicketCounter);
-        }
-
-        // PUT: api/TicketCounters/{ticketCounterId}
-        [HttpPut("{ticketCounterId}")]
-        public async Task<IActionResult> PutTicketCounter(Guid ticketCounterId, UpdateTicketCounterDto ticketCounterDto)
+        [ProducesResponseType(typeof(TicketCounterDto), 201)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<TicketCounterDto>> Post([FromBody] CreateTicketCounterDto createDto) // Assuming this DTO exists
         {
             try
             {
-                await _ticketCounterService.UpdateTicketCounterAsync(ticketCounterId, ticketCounterDto);
+                var createdTicketCounter = await _ticketCounterService.CreateTicketCounterAsync(createDto);
+                return CreatedAtAction(nameof(Get), new { id = createdTicketCounter.Id }, createdTicketCounter);
             }
             catch (ApplicationException ex)
             {
-                if (ex.Message.Contains("not found"))
-                {
-                    return NotFound();
-                }
-                throw;
+                return BadRequest(ex.Message);
             }
-            catch (Exception)
-            {
-                return StatusCode(500, "An error occurred while updating the ticket counter.");
-            }
-
-            return NoContent();
         }
 
-        // DELETE: api/TicketCounters/{ticketCounterId}
-        [HttpDelete("{ticketCounterId}")]
-        public async Task<IActionResult> DeleteTicketCounter(Guid ticketCounterId)
+        [HttpPut("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Put(int id, [FromBody] UpdateTicketCounterDto updateDto) // Assuming this DTO exists
+        {
+            if (updateDto == null)
+            {
+                return BadRequest("Update data is null.");
+            }
+
+            try
+            {
+                await _ticketCounterService.UpdateTicketCounterAsync(id, updateDto);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ApplicationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                await _ticketCounterService.DeleteTicketCounterAsync(ticketCounterId);
+                await _ticketCounterService.DeleteTicketCounterAsync(id);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
             catch (ApplicationException ex)
             {
-                if (ex.Message.Contains("not found"))
-                {
-                    return NotFound();
-                }
-                throw;
+                return BadRequest(ex.Message);
             }
-            catch (Exception)
-            {
-                return StatusCode(500, "An error occurred while deleting the ticket counter.");
-            }
-
-            return NoContent();
         }
     }
 }

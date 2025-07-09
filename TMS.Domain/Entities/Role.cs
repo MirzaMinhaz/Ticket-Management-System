@@ -1,13 +1,17 @@
 ﻿// TMS.Domain/Entities/Role.cs
 using System;
-// Remove any other using statements if not explicitly needed, e.g., System.Collections.Generic;
+using System.Collections.Generic; // Used if Role has collection properties
 
-namespace TMS.Domain.Entities // <-- VERY IMPORTANT: Ensure this namespace is correct
+namespace TMS.Domain.Entities
 {
-    public class Role : BaseEntity // Inherit from BaseEntity which gives it the 'Id' property
+    public class Role : BaseEntity<int> // Inherit from BaseEntity<int>
     {
-        // No other properties are needed here if your DB table only has RoleId
-        // The 'Id' property from BaseEntity will be mapped to 'RoleId' column in DB
-        // via the convention you set in OnModelCreating (entityType.DisplayName() + "Id")
+        // Primary key is 'Id' from BaseEntity<int>
+
+        public string RoleName { get; set; } // e.g., "Admin", "User", "Ticket Agent"
+                                             // You might also add a RoleCode if needed (e.g., ROL-001)
+
+        // If a role can have a collection of Users, add it here
+        // public ICollection<User> Users { get; set; } = new HashSet<User>();
     }
 }

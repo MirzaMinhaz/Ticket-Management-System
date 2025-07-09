@@ -1,9 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// TMS.WebAPI/Controllers/LocationsController.cs
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMS.Application.DTOs;
-using TMS.Application.Interfaces.Services;
+using TMS.Application.Interfaces;
+using TMS.Application.DTOs;
+using TMS.Application.Interfaces.Services; 
+using TMS.Application.Services;
+using TMS.Application.Exceptions;
 
 namespace TMS.WebAPI.Controllers
 {
@@ -20,98 +26,131 @@ namespace TMS.WebAPI.Controllers
 
         // GET: api/Locations
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<LocationDto>>> GetLocations()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<LocationDto>>> GetAllLocations()
         {
             var locations = await _locationService.GetAllLocationsAsync();
             return Ok(locations);
         }
 
-        // GET: api/Locations/5
-        [HttpGet("{locationId}")] // Use locationId in route
-        public async Task<ActionResult<LocationDto>> GetLocation(Guid locationId) // Use locationId parameter
+        // GET: api/Locations/{id}
+        // Error CS1503 (Line 33 was likely this method parameter or a call to it)
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<LocationDto>> GetLocationById(int id) // Changed Guid to int
         {
-            var location = await _locationService.GetLocationByIdAsync(locationId);
-
+            var location = await _locationService.GetLocationByIdAsync(id); // Passed int id
             if (location == null)
             {
-                return NotFound();
+                return NotFound($"Location with ID {id} not found.");
             }
-
             return Ok(location);
         }
 
-        [HttpGet("exists")]
-        public async Task<ActionResult<bool>> CheckLocationExists([FromQuery] string name, [FromQuery] string type)
+        // GET: api/Locations/code/{locationCode} (Optional: if you want to expose by code)
+        [HttpGet("code/{locationCode}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<LocationDto>> GetLocationByCode(string locationCode)
         {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
+            var location = await _locationService.GetLocationByCodeAsync(locationCode);
+            if (location == null)
             {
-                return BadRequest("Name and Type parameters are required.");
+                return NotFound($"Location with Code {locationCode} not found.");
             }
-
-            var exists = await _locationService.LocationExistsAsync(name, type);
-            return Ok(exists);
+            return Ok(location);
         }
+
 
         // POST: api/Locations
         [HttpPost]
-        public async Task<ActionResult<LocationDto>> PostLocation(CreateLocationDto locationDto)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<LocationDto>> CreateLocation([FromBody] CreateLocationDto createDto)
         {
-            var newLocation = await _locationService.CreateLocationAsync(locationDto);
-            // Return 201 CreatedAtAction with the new resource's ID
-            return CreatedAtAction(nameof(GetLocation), new { locationId = newLocation.LocationId }, newLocation);
-        }
-
-        // PUT: api/Locations/5
-        [HttpPut("{locationId}")] // Use locationId in route
-        public async Task<IActionResult> PutLocation(Guid locationId, UpdateLocationDto locationDto) // Use locationId parameter
-        {
-            // You might want to check if the ID in the DTO matches the route ID,
-            // but for PUT, often the route ID is the authoritative one.
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
-                await _locationService.UpdateLocationAsync(locationId, locationDto);
+                var createdLocation = await _locationService.CreateLocationAsync(createDto);
+
+                // Error CS1061 (Line 61 was likely here: trying to access LocationId)
+                // Use .Id now, and optionally LocationCode for human-readable URL if desired
+                return CreatedAtAction(nameof(GetLocationById), new { id = createdLocation.Id }, createdLocation);
+                // Alternative if you prefer returning by code:
+                // return CreatedAtAction(nameof(GetLocationByCode), new { locationCode = createdLocation.LocationCode }, createdLocation);
             }
-            catch (ApplicationException ex) // Catch custom exception for not found
+            catch (ApplicationException ex) // Catch specific application exceptions, e.g., for duplicates
             {
-                if (ex.Message.Contains("not found")) // A simple check, better with custom exception types
-                {
-                    return NotFound();
-                }
-                throw; // Re-throw other exceptions
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
-                // Log the exception
-                return StatusCode(500, "An error occurred while updating the location.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error creating new location.");
             }
-
-            return NoContent(); // 204 No Content for successful update
         }
 
-        // DELETE: api/Locations/5
-        [HttpDelete("{locationId}")] // Use locationId in route
-        public async Task<IActionResult> DeleteLocation(Guid locationId) // Use locationId parameter
+        // PUT: api/Locations/{id}
+        // Error CS1503 (Line 73 was likely this method parameter or a call to it)
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateLocation(int id, [FromBody] UpdateLocationDto updateDto) // Changed Guid to int
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _locationService.UpdateLocationAsync(id, updateDto); // Passed int id
+                return NoContent();
+            }
+            catch (NotFoundException ex) // Catch custom Not Found exception from service
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ApplicationException ex) // Catch other application exceptions, e.g., for duplicates
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error updating location with ID {id}.");
+            }
+        }
+
+        // DELETE: api/Locations/{id}
+        // Error CS1503 (Line 98 was likely this method parameter or a call to it)
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)] // In case of FK constraint violation
+        public async Task<IActionResult> DeleteLocation(int id) // Changed Guid to int
         {
             try
             {
-                await _locationService.DeleteLocationAsync(locationId);
+                await _locationService.DeleteLocationAsync(id); // Passed int id
+                return NoContent();
             }
-            catch (ApplicationException ex)
+            catch (NotFoundException ex)
             {
-                if (ex.Message.Contains("not found"))
-                {
-                    return NotFound();
-                }
-                throw;
+                return NotFound(ex.Message);
+            }
+            catch (ApplicationException ex) // For FK constraint or business rule violations
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
-                // Log the exception
-                return StatusCode(500, "An error occurred while deleting the location.");
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error deleting location with ID {id}.");
             }
-
-            return NoContent();
         }
     }
 }

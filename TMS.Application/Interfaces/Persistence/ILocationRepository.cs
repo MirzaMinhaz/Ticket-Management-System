@@ -1,10 +1,11 @@
 ﻿using TMS.Domain.Entities;
+using System.Threading.Tasks;
+using TMS.Application.Interfaces.Persistence; // Needed for IGenericRepository
 
 namespace TMS.Application.Interfaces.Persistence
 {
-    public interface ILocationRepository : IGenericRepository<Location>
+    public interface ILocationRepository : IGenericRepository<Location, int>
     {
-        // Add any Location-specific query or command methods here if needed, e.g.:
-        // Task<Location?> GetLocationByNameAsync(string name);
+        Task<Location> GetLocationByCodeAsync(string locationCode);
     }
 }

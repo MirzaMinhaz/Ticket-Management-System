@@ -1,22 +1,20 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations.Schema; // For [Column]
+﻿// In TicketCounter.cs
+using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 
 namespace TMS.Domain.Entities
 {
-    public class TicketCounter : BaseEntity // Inherits BaseEntity for common properties
+    public class TicketCounter : BaseEntity<int> // Change from BaseEntity to BaseEntity<int>
     {
-        // EF Core will map 'Id' from BaseEntity to TicketCounterId column via configuration
-        public Guid LocationId { get; set; } // Foreign key to Location
+        // TicketCounterId will now be the 'Id' from BaseEntity<int>
+
+        public int LocationId { get; set; } // Change from Guid to int (Foreign key to Location)
 
         public string CounterName { get; set; }
-        public string CounterCode { get; set; }
+        public string CounterCode { get; set; } // This will store TCO-001, TCO-002 etc.
         public string AddressDetails { get; set; }
         public string ContactNumber { get; set; }
         public string OperatingHours { get; set; }
-        //public decimal? Latitude { get; set; } // Specific to counter
-        //public decimal? Longitude { get; set; } // Specific to counter
         public bool IsActive { get; set; } = true;
 
         // Navigation properties
@@ -24,5 +22,13 @@ namespace TMS.Domain.Entities
         public ICollection<Ticket> BookingTickets { get; set; } // Tickets booked at this counter
         public ICollection<Ticket> DepartureTickets { get; set; } // Tickets departing from this counter
         public ICollection<Ticket> ArrivalTickets { get; set; } // Tickets arriving at this counter
+
+        // Constructor to initialize collections (good practice)
+        public TicketCounter()
+        {
+            BookingTickets = new HashSet<Ticket>();
+            DepartureTickets = new HashSet<Ticket>();
+            ArrivalTickets = new HashSet<Ticket>();
+        }
     }
 }

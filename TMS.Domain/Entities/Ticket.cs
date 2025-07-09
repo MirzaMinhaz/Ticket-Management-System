@@ -4,19 +4,20 @@ using System.Collections.Generic;
 
 namespace TMS.Domain.Entities
 {
-    public class Ticket : BaseEntity // Inherits Id (TicketId), CreatedAt, etc.
+    public class Ticket : BaseEntity<int> // Inherit from BaseEntity<int>
     {
-        // Primary key will be Id from BaseEntity, mapped to TicketId column
+        // Primary key is 'Id' from BaseEntity<int>
 
-        public Guid UserId { get; set; }      // Foreign key to User
-        public Guid ScheduleId { get; set; }  // Foreign key to Schedule
-        public Guid SeatId { get; set; }      // Foreign key to Seat (the specific seat booked for this ticket)
+        public int UserId { get; set; }      // Foreign key to User (int)
+        public int ScheduleId { get; set; }  // Foreign key to Schedule (int)
+        public int SeatId { get; set; }      // Foreign key to Seat (int)
 
         // Foreign Keys for Ticket Counters (Nullable if optional)
-        public Guid? BookingCounterId { get; set; }
-        public Guid? DepartureCounterId { get; set; }
-        public Guid? ArrivalCounterId { get; set; }
+        public int? BookingCounterId { get; set; }
+        public int? DepartureCounterId { get; set; }
+        public int? ArrivalCounterId { get; set; }
 
+        public string TicketCode { get; set; } // e.g., TIC-0001, TIC-0010
         public string PassengerName { get; set; }
         public string PassengerContact { get; set; } // Email or Phone
         public decimal FarePaid { get; set; }
@@ -26,10 +27,7 @@ namespace TMS.Domain.Entities
         // Navigation properties
         public User User { get; set; }
         public Schedule Schedule { get; set; }
-
-        // This is the property that caused the confusion and the error:
-        // 'BookedSeat' is just a name for the navigation property that points to the 'Seat' entity.
-        public Seat BookedSeat { get; set; } // Renamed from 'Seat' to 'BookedSeat' for clarity in Ticket entity
+        public Seat BookedSeat { get; set; } // Renamed from 'Seat' for clarity
 
         // Navigation properties for TicketCounters
         public TicketCounter BookingCounter { get; set; }
@@ -37,5 +35,10 @@ namespace TMS.Domain.Entities
         public TicketCounter ArrivalCounter { get; set; }
 
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+
+        public Ticket()
+        {
+            Comments = new List<Comment>();
+        }
     }
 }

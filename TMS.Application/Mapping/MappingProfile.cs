@@ -1,35 +1,33 @@
-﻿using AutoMapper;
+﻿// In your AutoMapper Profile (e.g., MappingProfile.cs)
+using AutoMapper;
 using TMS.Application.DTOs;
 using TMS.Domain.Entities;
 
-namespace TMS.Application.Mappings
+namespace TMS.Application.MappingProfiles
 {
     public class MappingProfile : Profile
     {
         public MappingProfile()
         {
-            // Location Mappings
-            CreateMap<Location, LocationDto>()
-                .ForMember(dest => dest.LocationId, opt => opt.MapFrom(src => src.Id)) // Map BaseEntity.Id to LocationDto.LocationId
-                .ReverseMap(); // Allows mapping back from DTO to Entity
+            // Location Mappings (assuming you'll apply similar int ID change to Location)
+            CreateMap<Location, LocationDto>().ReverseMap();
+            CreateMap<CreateLocationDto, Location>();
+            CreateMap<UpdateLocationDto, Location>();
 
-            CreateMap<CreateLocationDto, Location>()
-                 .ForMember(dest => dest.Id, opt => opt.Ignore()); // EF will generate ID on add
 
-            CreateMap<UpdateLocationDto, Location>()
-                 .ForMember(dest => dest.Id, opt => opt.Ignore()); // ID handled by route parameter
-
-            // TicketCounter Mappings (NEW)
+            // TicketCounter Mappings
             CreateMap<TicketCounter, TicketCounterDto>()
-                .ForMember(dest => dest.TicketCounterId, opt => opt.MapFrom(src => src.Id)) // Map BaseEntity.Id to TicketCounterDto.TicketCounterId
-                .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.Location)) // Map nested Location
-                .ReverseMap();
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id)) // Explicitly map Id from BaseEntity
+                                                                               // If you want LocationName in DTO, ensure Location is included in query
+                .ForMember(dest => dest.LocationName, opt => opt.MapFrom(src => src.Location != null ? src.Location.Name : null))
+                .ReverseMap(); // Allows mapping DTO back to Entity for updates
 
             CreateMap<CreateTicketCounterDto, TicketCounter>()
-                 .ForMember(dest => dest.Id, opt => opt.Ignore()); // EF will generate ID on add
-
+                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Database generates Id
             CreateMap<UpdateTicketCounterDto, TicketCounter>()
-                 .ForMember(dest => dest.Id, opt => opt.Ignore()); // ID handled by route parameter
+                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id is from route, not DTO
+            // For updates, the mapper will update existingTicketCounter based on the DTO.
+            // The existingTicketCounter already has its Id.
         }
     }
 }

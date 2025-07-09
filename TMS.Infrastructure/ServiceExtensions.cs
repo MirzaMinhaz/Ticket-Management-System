@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// TMS.Infrastructure/ServiceExtensions.cs
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TMS.Application.Interfaces.Persistence;
@@ -11,16 +12,27 @@ namespace TMS.Infrastructure
     {
         public static void AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
+            // Configure DbContext
             services.AddDbContext<TicketManagementDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            // Register IGenericRepository and GenericRepository as open generics
+            services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
 
             // Register specific repositories
             services.AddScoped<ILocationRepository, LocationRepository>();
-            services.AddScoped<ITicketCounterRepository, TicketCounterRepository>(); // NEW
-            // Add other specific repositories here
+            // Add other specific repositories as needed:
+            // services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();
+            // services.AddScoped<IRouteRepository, RouteRepository>();
+            // services.AddScoped<IScheduleRepository, ScheduleRepository>();
+            // services.AddScoped<ITicketBookingRepository, TicketBookingRepository>();
+            // services.AddScoped<IUserRepository, UserRepository>();
+
+
+            // === NEW: Register IUnitOfWork and its implementation ===
+            // This is the missing piece!
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            // =======================================================
         }
     }
 }

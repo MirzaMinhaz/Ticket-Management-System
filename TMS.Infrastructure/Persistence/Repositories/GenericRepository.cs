@@ -1,15 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// TMS.Infrastructure/Persistence/Repositories/GenericRepository.cs
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using TMS.Application.Interfaces.Persistence;
-using TMS.Domain.Entities;
 
 namespace TMS.Infrastructure.Persistence.Repositories
 {
-    public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : BaseEntity
+    public class GenericRepository<TEntity, TId> : IGenericRepository<TEntity, TId> where TEntity : class
     {
         protected readonly TicketManagementDbContext _dbContext;
         protected readonly DbSet<TEntity> _dbSet;
@@ -20,49 +20,41 @@ namespace TMS.Infrastructure.Persistence.Repositories
             _dbSet = _dbContext.Set<TEntity>();
         }
 
-        public async Task<TEntity> GetByIdAsync(Guid id)
+        public async Task<TEntity> GetByIdAsync(TId id)
         {
             return await _dbSet.FindAsync(id);
         }
 
-        public async Task<IReadOnlyList<TEntity>> GetAllAsync()
+        public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
             return await _dbSet.ToListAsync();
         }
 
-        public async Task<IReadOnlyList<TEntity>> GetWhereAsync(Expression<Func<TEntity, bool>> predicate)
+        public async Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate)
         {
             return await _dbSet.Where(predicate).ToListAsync();
         }
 
-        public async Task<TEntity> AddAsync(TEntity entity)
+        public async Task<TEntity> FindSingleAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbSet.FirstOrDefaultAsync(predicate);
+        }
+
+        public async Task AddAsync(TEntity entity)
         {
             await _dbSet.AddAsync(entity);
-            return entity;
         }
 
-        public Task UpdateAsync(TEntity entity)
+        public void Update(TEntity entity)
         {
-            _dbSet.Attach(entity);
-            _dbContext.Entry(entity).State = EntityState.Modified;
-            return Task.CompletedTask;
+            _dbSet.Update(entity);
         }
 
-        public Task DeleteAsync(TEntity entity)
+        public async Task DeleteAsync(TEntity entity) // <<<--- CONFIRMED ASYNC IMPLEMENTATION
         {
             _dbSet.Remove(entity);
-            return Task.CompletedTask;
-        }
-
-        public async Task<int> CountAsync(Expression<Func<TEntity, bool>> predicate)
-        {
-            return await _dbSet.CountAsync(predicate);
-        }
-
-        public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
-        {
-            // Access the DbSet<T> for the current entity type and apply the predicate
-            return await _dbContext.Set<TEntity>().AnyAsync(predicate);
+            await Task.CompletedTask; // Since Remove is not async itself, return a completed task.
+                                      // The actual save will happen when UnitOfWork.CompleteAsync() is called.
         }
     }
 }

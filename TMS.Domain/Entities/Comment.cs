@@ -1,14 +1,18 @@
 ﻿// TMS.Domain/Entities/Comment.cs
-using TMS.Domain.Entities;
+using System;
 
-public class Comment : BaseEntity
+namespace TMS.Domain.Entities
 {
-    public Guid TicketId { get; set; }
-    public Guid UserId { get; set; }
-    public string Content { get; set; } = string.Empty; // <-- Initialize here
-    // OR make it nullable: public string? Content { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public class Comment : BaseEntity<int> // Inherit from BaseEntity<int>
+    {
+        // Primary key is 'Id' from BaseEntity<int>
 
-    public Ticket Ticket { get; set; }
-    public User User { get; set; }
+        public int TicketId { get; set; } // Change from Guid to int
+        public int UserId { get; set; }   // Change from Guid to int
+        public string Content { get; set; } = string.Empty;
+        // public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Already in BaseEntity
+
+        public Ticket Ticket { get; set; }
+        public User User { get; set; }
+    }
 }

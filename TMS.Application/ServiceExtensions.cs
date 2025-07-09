@@ -1,7 +1,13 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
-using TMS.Application.Interfaces.Services;
-using TMS.Application.Services;
+﻿// TMS.Application/ServiceExtensions.cs
+using Microsoft.Extensions.DependencyInjection;
+using System.Reflection; // Required for Assembly.GetExecutingAssembly()
+using AutoMapper; // Required for AddAutoMapper
+
+// Required for ILocationService
+using TMS.Application.Interfaces.Services; // <--- This line is CRUCIAL for ILocationService
+
+// Required for LocationService
+using TMS.Application.Services; // <--- This line is CRUCIAL for LocationService
 
 namespace TMS.Application
 {
@@ -9,12 +15,14 @@ namespace TMS.Application
     {
         public static void AddApplicationServices(this IServiceCollection services)
         {
+            // Register AutoMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
-            // Register Application Services
+            // Register your other services here
+            // This is line 18, where the errors are reported
             services.AddScoped<ILocationService, LocationService>();
-            services.AddScoped<ITicketCounterService, TicketCounterService>(); // NEW
-            // Add other application services here
+
+            // ... potentially other service registrations
         }
     }
 }

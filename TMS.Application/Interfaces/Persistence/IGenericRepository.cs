@@ -1,20 +1,20 @@
-﻿using System;
+﻿// TMS.Application/Interfaces/Persistence/IGenericRepository.cs
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using TMS.Domain.Entities; // Ensure this using is present
 
 namespace TMS.Application.Interfaces.Persistence
 {
-    public interface IGenericRepository<TEntity> where TEntity : BaseEntity
+    public interface IGenericRepository<TEntity, TId> where TEntity : class
     {
-        Task<TEntity> GetByIdAsync(Guid id); // Renamed from Id to Guid for consistency
-        Task<IReadOnlyList<TEntity>> GetAllAsync();
-        Task<IReadOnlyList<TEntity>> GetWhereAsync(Expression<Func<TEntity, bool>> predicate);
-        Task<TEntity> AddAsync(TEntity entity);
-        Task UpdateAsync(TEntity entity);
-        Task DeleteAsync(TEntity entity);
-        Task<int> CountAsync(Expression<Func<TEntity, bool>> predicate);
-        Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);
+        Task<TEntity> GetByIdAsync(TId id);
+        Task<IEnumerable<TEntity>> GetAllAsync();
+        Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate);
+        Task<TEntity> FindSingleAsync(Expression<Func<TEntity, bool>> predicate);
+
+        Task AddAsync(TEntity entity);
+        void Update(TEntity entity);
+        Task DeleteAsync(TEntity entity); // <<<--- CONFIRMED to be async
     }
 }

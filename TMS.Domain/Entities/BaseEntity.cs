@@ -1,20 +1,16 @@
 ﻿// TMS.Domain/Entities/BaseEntity.cs
-using System; // Make sure System is imported for Guid and DateTime
+using System;
 
 namespace TMS.Domain.Entities
 {
+    // Make BaseEntity generic to allow different ID types
     public abstract class BaseEntity<TId>
     {
-        public TId Id { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? LastModifiedAt { get; set; } // Nullable
-        public string CreatedBy { get; set; } // Nullable
-        public string LastModifiedBy { get; set; } // Nullable
-    }
+        public TId Id { get; set; } // The primary key property
 
-    // A non-generic BaseEntity for common use with Guid IDs
-    public abstract class BaseEntity : BaseEntity<Guid>
-    {
-        // No additional properties needed here, just inherits BaseEntity<Guid>
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastModifiedAt { get; set; }
+        public string CreatedBy { get; set; }
+        public string LastModifiedBy { get; set; }
     }
 }
