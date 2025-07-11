@@ -2,9 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TMS.Application.DTOs; // Ensure TicketCounter DTOs are available
+using TMS.Application.DTOs;
 using TMS.Application.Interfaces.Services;
 using TMS.Application.Exceptions;
+using System.Linq; // Required for .Any()
 
 namespace TMS.WebAPI.Controllers
 {
@@ -27,17 +28,15 @@ namespace TMS.WebAPI.Controllers
             return Ok(ticketCounters);
         }
 
-        // <<<--- NEW ENDPOINT FOR GETTING COUNTERS BY LOCATION ID
-        [HttpGet("byLocation/{locationId}")]
+        [HttpGet("byLocation/{locationId}")] // <<<--- CONFIRM ROUTE AND METHOD NAME
         [ProducesResponseType(typeof(IEnumerable<TicketCounterDto>), 200)]
         [ProducesResponseType(404)] // Or 200 with empty list if no counters
         public async Task<ActionResult<IEnumerable<TicketCounterDto>>> GetTicketCountersByLocation(int locationId)
         {
-            var ticketCounters = await _ticketCounterService.GetTicketCountersByLocationAsync(locationId);
-            if (ticketCounters == null || !((List<TicketCounterDto>)ticketCounters).Any()) // Check if the list is empty
+            var ticketCounters = await _ticketCounterService.GetTicketCountersByLocationAsync(locationId); // <<<--- CONFIRM CALL
+            if (ticketCounters == null || !ticketCounters.Any()) // Use .Any() directly
             {
-                // Return 200 OK with an empty list, as it's not an error if a location has no counters
-                return Ok(new List<TicketCounterDto>());
+                return Ok(new List<TicketCounterDto>()); // Return 200 OK with an empty list
             }
             return Ok(ticketCounters);
         }
@@ -78,7 +77,7 @@ namespace TMS.WebAPI.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(TicketCounterDto), 201)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<TicketCounterDto>> Post([FromBody] CreateTicketCounterDto createDto) // Assuming this DTO exists
+        public async Task<ActionResult<TicketCounterDto>> Post([FromBody] CreateTicketCounterDto createDto)
         {
             try
             {
@@ -95,7 +94,7 @@ namespace TMS.WebAPI.Controllers
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Put(int id, [FromBody] UpdateTicketCounterDto updateDto) // Assuming this DTO exists
+        public async Task<IActionResult> Put(int id, [FromBody] UpdateTicketCounterDto updateDto)
         {
             if (updateDto == null)
             {

@@ -12,9 +12,8 @@ namespace TMS.Application.Interfaces.Persistence
         Task<IEnumerable<TEntity>> GetAllAsync();
         Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate);
         Task<TEntity> FindSingleAsync(Expression<Func<TEntity, bool>> predicate);
-
         Task AddAsync(TEntity entity);
         void Update(TEntity entity);
-        Task DeleteAsync(TEntity entity); // <<<--- CONFIRMED to be async
+        Task DeleteAsync(TEntity entity); // Method should be Task, as in implementation
     }
 }

@@ -1,6 +1,6 @@
 ﻿// TMS.Application/DTOs/LocationDto.cs
-using System; // For DateTime
-using System.ComponentModel.DataAnnotations; // <<<--- THIS MUST BE PRESENT
+using System; // Required for DateTime
+using System.ComponentModel.DataAnnotations; // <<<--- THIS IS ESSENTIAL FOR [Required] and [StringLength]
 
 namespace TMS.Application.DTOs
 {

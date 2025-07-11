@@ -2,13 +2,15 @@
 using AutoMapper;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TMS.Application.DTOs; // Ensure these DTOs are defined: TicketCounterDto, CreateTicketCounterDto, UpdateTicketCounterDto
+using TMS.Application.DTOs;
 using TMS.Application.Exceptions;
 using TMS.Application.Interfaces.Persistence;
 using TMS.Application.Interfaces.Services;
 using TMS.Domain.Entities;
 using System.Linq;
-using Microsoft.EntityFrameworkCore; // Might need for includes, or if FindAsync/FindSingleAsync use it internally
+using Microsoft.EntityFrameworkCore;
+using System;
+using Microsoft.AspNetCore.Http; // <<<--- CONFIRM THIS USING
 
 namespace TMS.Application.Services
 {
@@ -17,12 +19,14 @@ namespace TMS.Application.Services
         private readonly ITicketCounterRepository _ticketCounterRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _httpContextAccessor; // <<<--- CONFIRM THIS FIELD
 
-        public TicketCounterService(ITicketCounterRepository ticketCounterRepository, IUnitOfWork unitOfWork, IMapper mapper)
+        public TicketCounterService(ITicketCounterRepository ticketCounterRepository, IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor) // <<<--- CONFIRM CONSTRUCTOR PARAMETER
         {
             _ticketCounterRepository = ticketCounterRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor; // <<<--- CONFIRM ASSIGNMENT
         }
 
         public async Task<IEnumerable<TicketCounterDto>> GetAllTicketCountersAsync()
@@ -51,10 +55,9 @@ namespace TMS.Application.Services
             return _mapper.Map<TicketCounterDto>(ticketCounter);
         }
 
-        // <<<--- NEW METHOD IMPLEMENTATION
-        public async Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(int locationId)
+        public async Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(int locationId) // <<<--- CONFIRM IMPLEMENTATION
         {
-            var ticketCounters = await _ticketCounterRepository.FindAsync(tc => tc.LocationId == locationId);
+            var ticketCounters = await _ticketCounterRepository.FindAsync(tc => tc.LocationId == locationId); // Using FindAsync
             return _mapper.Map<IEnumerable<TicketCounterDto>>(ticketCounters);
         }
 
@@ -71,6 +74,15 @@ namespace TMS.Application.Services
 
             var ticketCounter = _mapper.Map<TicketCounter>(createDto);
             ticketCounter.CounterCode = newCounterCode;
+
+            var currentTime = DateTime.UtcNow;
+            var currentUsername = GetCurrentUsername();
+
+            ticketCounter.CreatedAt = DateTime.UtcNow; // Set CreatedAt
+            ticketCounter.CreatedBy = GetCurrentUsername(); // Set CreatedBy
+
+            ticketCounter.LastModifiedAt = currentTime;
+            ticketCounter.LastModifiedBy = currentUsername;
 
             await _ticketCounterRepository.AddAsync(ticketCounter);
             await _unitOfWork.CompleteAsync();
@@ -97,6 +109,9 @@ namespace TMS.Application.Services
 
             _mapper.Map(updateDto, existingTicketCounter);
 
+            existingTicketCounter.LastModifiedAt = DateTime.UtcNow; // Set LastModifiedAt
+            existingTicketCounter.LastModifiedBy = GetCurrentUsername(); // Set LastModifiedBy
+
             _ticketCounterRepository.Update(existingTicketCounter);
             await _unitOfWork.CompleteAsync();
         }
@@ -109,7 +124,7 @@ namespace TMS.Application.Services
                 throw new NotFoundException($"Ticket Counter with ID {id} not found.");
             }
 
-            await _ticketCounterRepository.DeleteAsync(ticketCounter); // <<<--- Using DeleteAsync
+            await _ticketCounterRepository.DeleteAsync(ticketCounter); // Using DeleteAsync
             await _unitOfWork.CompleteAsync();
         }
 
@@ -132,6 +147,11 @@ namespace TMS.Application.Services
             }
 
             return $"TCO-{nextNumber:D3}";
+        }
+
+        private string GetCurrentUsername()
+        {
+            return _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "SystemUser";
         }
     }
 }

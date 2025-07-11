@@ -1,14 +1,12 @@
 ﻿// TMS.Application/Services/LocationService.cs
 using AutoMapper;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMS.Application.DTOs;
-using TMS.Application.Exceptions;
-using TMS.Application.Interfaces.Persistence;
+using TMS.Application.Interfaces.Persistence; // Ensure this is correct for ILocationRepository and IUnitOfWork
 using TMS.Application.Interfaces.Services;
-using TMS.Domain.Entities;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
+using TMS.Domain.Entities; // For Location entity
 
 namespace TMS.Application.Services
 {
@@ -31,100 +29,59 @@ namespace TMS.Application.Services
             return _mapper.Map<IEnumerable<LocationDto>>(locations);
         }
 
-        public async Task<LocationDto> GetLocationByIdAsync(int id)
+        public async Task<LocationDto> GetLocationByIdAsync(int id) // Change to int
         {
             var location = await _locationRepository.GetByIdAsync(id);
-            if (location == null)
-            {
-                throw new NotFoundException($"Location with ID {id} not found.");
-            }
             return _mapper.Map<LocationDto>(location);
         }
 
-        public async Task<LocationDto> GetLocationByCodeAsync(string locationCode)
+        public async Task<LocationDto> GetLocationByCodeAsync(string code)
         {
-            var location = await _locationRepository.GetLocationByCodeAsync(locationCode);
-            if (location == null)
-            {
-                throw new NotFoundException($"Location with code '{locationCode}' not found.");
-            }
+            var location = await _locationRepository.GetLocationByCodeAsync(code);
             return _mapper.Map<LocationDto>(location);
         }
 
         public async Task<LocationDto> CreateLocationAsync(CreateLocationDto createDto)
         {
-            var existingLocationByNameType = await _locationRepository.FindSingleAsync(l => l.Name == createDto.Name && l.Type == createDto.Type);
-            if (existingLocationByNameType != null)
-            {
-                throw new ApplicationException($"A location with the name '{createDto.Name}' and type '{createDto.Type}' already exists.");
-            }
-
-            string newLocationCode = await GenerateNextLocationCode();
-
             var location = _mapper.Map<Location>(createDto);
-            location.LocationCode = newLocationCode;
+            // REMOVE the line that tries to assign ID here:
+            // location.LocationId = Guid.NewGuid().ToString(); // OR any manual assignment like location.Id = 0;
+            // The database will assign the 'Id' after SaveChanges.
+
+            location.CreatedAt = DateTime.UtcNow;
+            location.CreatedBy = "System";
 
             await _locationRepository.AddAsync(location);
-            await _unitOfWork.CompleteAsync();
+            await _unitOfWork.CompleteAsync(); // This triggers database save and assigns the ID to location.Id
 
-            return _mapper.Map<LocationDto>(location);
+            return _mapper.Map<LocationDto>(location); // location.Id will now be populated
         }
 
-        public async Task UpdateLocationAsync(int id, UpdateLocationDto updateDto)
+        public async Task UpdateLocationAsync(int id, UpdateLocationDto updateDto) // Change to int
         {
             var existingLocation = await _locationRepository.GetByIdAsync(id);
             if (existingLocation == null)
             {
-                throw new NotFoundException($"Location with ID {id} not found.");
-            }
-
-            var duplicateLocation = await _locationRepository.FindSingleAsync(l =>
-                l.Name == updateDto.Name &&
-                l.Type == updateDto.Type &&
-                l.Id != id);
-
-            if (duplicateLocation != null)
-            {
-                throw new ApplicationException($"A location with the name '{updateDto.Name}' and type '{updateDto.Type}' already exists.");
+                throw new Exception($"Location with ID {id} not found.");
             }
 
             _mapper.Map(updateDto, existingLocation);
+            existingLocation.LastModifiedAt = DateTime.UtcNow;
+            existingLocation.LastModifiedBy = "System";
 
             _locationRepository.Update(existingLocation);
             await _unitOfWork.CompleteAsync();
         }
 
-        public async Task DeleteLocationAsync(int id)
+        public async Task DeleteLocationAsync(int id) // Change to int
         {
-            var location = await _locationRepository.GetByIdAsync(id);
-            if (location == null)
+            var existingLocation = await _locationRepository.GetByIdAsync(id);
+            if (existingLocation == null)
             {
-                throw new NotFoundException($"Location with ID {id} not found.");
+                throw new Exception($"Location with ID {id} not found.");
             }
-
-            await _locationRepository.DeleteAsync(location); // <<<--- CHANGED to await DeleteAsync
+            await _locationRepository.DeleteAsync(existingLocation); // Pass the entity for deletion
             await _unitOfWork.CompleteAsync();
-        }
-
-        private async Task<string> GenerateNextLocationCode()
-        {
-            string lastCode = null;
-            var allLocations = await _locationRepository.GetAllAsync();
-            if (allLocations != null && allLocations.Any())
-            {
-                lastCode = allLocations.OrderByDescending(l => l.LocationCode).FirstOrDefault()?.LocationCode;
-            }
-
-            int nextNumber = 1;
-            if (!string.IsNullOrEmpty(lastCode) && lastCode.StartsWith("LOC-"))
-            {
-                if (int.TryParse(lastCode.Substring(4), out int lastNumber))
-                {
-                    nextNumber = lastNumber + 1;
-                }
-            }
-
-            return $"LOC-{nextNumber:D3}";
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using TMS.Application.Interfaces.Persistence;
+using TMS.Infrastructure.Persistence; // Ensure DbContext is accessible
 
 namespace TMS.Infrastructure.Persistence.Repositories
 {
@@ -50,11 +51,10 @@ namespace TMS.Infrastructure.Persistence.Repositories
             _dbSet.Update(entity);
         }
 
-        public async Task DeleteAsync(TEntity entity) // <<<--- CONFIRMED ASYNC IMPLEMENTATION
+        public async Task DeleteAsync(TEntity entity) // Correct async implementation
         {
             _dbSet.Remove(entity);
-            await Task.CompletedTask; // Since Remove is not async itself, return a completed task.
-                                      // The actual save will happen when UnitOfWork.CompleteAsync() is called.
+            await Task.CompletedTask;
         }
     }
 }
