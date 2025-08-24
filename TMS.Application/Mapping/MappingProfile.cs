@@ -1,33 +1,29 @@
-﻿// In your AutoMapper Profile (e.g., MappingProfile.cs)
+﻿// TMS.Application/Mapping/MappingProfile.cs
 using AutoMapper;
 using TMS.Application.DTOs;
 using TMS.Domain.Entities;
 
-namespace TMS.Application.MappingProfiles
+namespace TMS.Application.Mapping
 {
     public class MappingProfile : Profile
     {
         public MappingProfile()
         {
-            // Location Mappings (assuming you'll apply similar int ID change to Location)
-            CreateMap<Location, LocationDto>().ReverseMap();
-            CreateMap<CreateLocationDto, Location>();
-            CreateMap<UpdateLocationDto, Location>();
-
+            // Location Mappings
+            CreateMap<Location, LocationDto>().ReverseMap(); // LocationDto has locationId: string
+            CreateMap<CreateLocationDto, Location>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id will be generated in service
+            CreateMap<UpdateLocationDto, Location>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id not updated by DTO
 
             // TicketCounter Mappings
-            CreateMap<TicketCounter, TicketCounterDto>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id)) // Explicitly map Id from BaseEntity
-                                                                               // If you want LocationName in DTO, ensure Location is included in query
-                .ForMember(dest => dest.LocationName, opt => opt.MapFrom(src => src.Location != null ? src.Location.Name : null))
-                .ReverseMap(); // Allows mapping DTO back to Entity for updates
-
+            CreateMap<TicketCounter, TicketCounterDto>().ReverseMap(); // TicketCounterDto has ticketCounterId: string and locationId: string
             CreateMap<CreateTicketCounterDto, TicketCounter>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Database generates Id
+                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Id will be generated in service
+                .ForMember(dest => dest.CounterCode, opt => opt.Ignore()); // CounterCode generated in service
             CreateMap<UpdateTicketCounterDto, TicketCounter>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id is from route, not DTO
-            // For updates, the mapper will update existingTicketCounter based on the DTO.
-            // The existingTicketCounter already has its Id.
+                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Id not updated by DTO
+                .ForMember(dest => dest.CounterCode, opt => opt.Ignore()); // CounterCode not updated by DTO
         }
     }
 }

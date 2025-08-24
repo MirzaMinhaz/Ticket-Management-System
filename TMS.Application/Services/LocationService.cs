@@ -2,11 +2,12 @@
 using AutoMapper;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TMS.Application.DTOs;
-using TMS.Application.Interfaces.Persistence; // Ensure this is correct for ILocationRepository and IUnitOfWork
+using TMS.Application.Interfaces.Persistence;
 using TMS.Application.Interfaces.Services;
-using TMS.Domain.Entities; // For Location entity
+using TMS.Domain.Entities;
 
 namespace TMS.Application.Services
 {
@@ -29,7 +30,7 @@ namespace TMS.Application.Services
             return _mapper.Map<IEnumerable<LocationDto>>(locations);
         }
 
-        public async Task<LocationDto> GetLocationByIdAsync(int id) // Change to int
+        public async Task<LocationDto> GetLocationByIdAsync(int id) // CRITICAL: int ID
         {
             var location = await _locationRepository.GetByIdAsync(id);
             return _mapper.Map<LocationDto>(location);
@@ -44,20 +45,23 @@ namespace TMS.Application.Services
         public async Task<LocationDto> CreateLocationAsync(CreateLocationDto createDto)
         {
             var location = _mapper.Map<Location>(createDto);
-            // REMOVE the line that tries to assign ID here:
-            // location.LocationId = Guid.NewGuid().ToString(); // OR any manual assignment like location.Id = 0;
-            // The database will assign the 'Id' after SaveChanges.
+
+            // Location.Id (int) is auto-incremented by the database. DO NOT SET IT HERE.
+            // Generate LocationCode (string)
+            location.LocationCode = await GenerateUniqueLocationCode();
 
             location.CreatedAt = DateTime.UtcNow;
-            location.CreatedBy = "System";
+            location.CreatedBy = "SystemUser";
+            location.LastModifiedAt = DateTime.UtcNow;
+            location.LastModifiedBy = "SystemUser";
 
             await _locationRepository.AddAsync(location);
-            await _unitOfWork.CompleteAsync(); // This triggers database save and assigns the ID to location.Id
+            await _unitOfWork.CompleteAsync(); // This saves to DB and populates `location.Id`
 
-            return _mapper.Map<LocationDto>(location); // location.Id will now be populated
+            return _mapper.Map<LocationDto>(location);
         }
 
-        public async Task UpdateLocationAsync(int id, UpdateLocationDto updateDto) // Change to int
+        public async Task UpdateLocationAsync(int id, UpdateLocationDto updateDto) // CRITICAL: int ID
         {
             var existingLocation = await _locationRepository.GetByIdAsync(id);
             if (existingLocation == null)
@@ -67,21 +71,46 @@ namespace TMS.Application.Services
 
             _mapper.Map(updateDto, existingLocation);
             existingLocation.LastModifiedAt = DateTime.UtcNow;
-            existingLocation.LastModifiedBy = "System";
+            existingLocation.LastModifiedBy = "SystemUser";
 
             _locationRepository.Update(existingLocation);
             await _unitOfWork.CompleteAsync();
         }
 
-        public async Task DeleteLocationAsync(int id) // Change to int
+        public async Task DeleteLocationAsync(int id) // CRITICAL: int ID
         {
             var existingLocation = await _locationRepository.GetByIdAsync(id);
             if (existingLocation == null)
             {
                 throw new Exception($"Location with ID {id} not found.");
             }
-            await _locationRepository.DeleteAsync(existingLocation); // Pass the entity for deletion
+            await _locationRepository.DeleteAsync(existingLocation);
             await _unitOfWork.CompleteAsync();
+        }
+
+        private async Task<string> GenerateUniqueLocationCode()
+        {
+            var allLocations = await _locationRepository.GetAllAsync();
+            string lastCode = allLocations
+                                .Select(l => l.LocationCode)
+                                .Where(code => code != null && code.StartsWith("LOC-"))
+                                .OrderByDescending(code => code)
+                                .FirstOrDefault();
+
+            int nextNumber = 1;
+            if (!string.IsNullOrEmpty(lastCode))
+            {
+                int lastHyphenIndex = lastCode.LastIndexOf('-');
+                if (lastHyphenIndex != -1 && lastCode.Length > lastHyphenIndex + 1)
+                {
+                    string numericPart = lastCode.Substring(lastHyphenIndex + 1);
+                    if (int.TryParse(numericPart, out int lastNumber))
+                    {
+                        nextNumber = lastNumber + 1;
+                    }
+                }
+            }
+            return $"LOC-{nextNumber:D3}"; // Formats as LOC-001, LOC-002, etc.
         }
     }
 }

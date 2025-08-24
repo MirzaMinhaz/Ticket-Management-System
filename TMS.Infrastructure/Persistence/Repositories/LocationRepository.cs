@@ -1,7 +1,7 @@
 ﻿// TMS.Infrastructure/Persistence/Repositories/LocationRepository.cs
 using TMS.Domain.Entities;
-using TMS.Application.Interfaces.Persistence; // For ILocationRepository and IGenericRepository
-using TMS.Infrastructure.Persistence; // For TicketManagementDbContext
+using TMS.Application.Interfaces.Persistence;
+using TMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System;
@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 
 namespace TMS.Infrastructure.Persistence.Repositories
 {
-    // CRITICAL: Inherit from GenericRepository<Location, int>
-    public class LocationRepository : GenericRepository<Location, int>, ILocationRepository
+    public class LocationRepository : GenericRepository<Location, int>, ILocationRepository // CRITICAL: int ID
     {
         private readonly TicketManagementDbContext _dbContext;
 
@@ -20,33 +19,25 @@ namespace TMS.Infrastructure.Persistence.Repositories
             _dbContext = dbContext;
         }
 
-        // Add the missing method implementation:
         public async Task<Location> GetLocationByCodeAsync(string code)
         {
-            // Use the LocationCode property from your Location entity
             return await _dbSet.FirstOrDefaultAsync(l => l.LocationCode == code);
         }
 
-        // Ensure other specific methods of ILocationRepository (if any) are implemented here
-        // For example, if ILocationRepository has Task DeleteAsync(int id)
-        public async Task DeleteAsync(int id) // Ensure this matches ILocationRepository if it defines delete by ID
+        public async Task DeleteAsync(int id) // CRITICAL: int ID
         {
             var entity = await _dbSet.FindAsync(id);
             if (entity != null)
             {
                 _dbSet.Remove(entity);
-                // SaveChangesAsync is handled by UnitOfWork, so no need to call _dbContext.SaveChangesAsync() here usually
             }
         }
 
-        // Ensure UpdateLocationAsync (if defined in ILocationRepository) is implemented
-        public async Task UpdateLocationAsync(Location location) // Example from previous response
+        public async Task UpdateLocationAsync(Location location)
         {
             _dbSet.Update(location);
-            // SaveChangesAsync is handled by UnitOfWork
         }
 
-        // Ensure GetWhereAsync (if defined in ILocationRepository) is implemented
         public async Task<IEnumerable<Location>> GetWhereAsync(Expression<Func<Location, bool>> predicate)
         {
             return await _dbSet.Where(predicate).ToListAsync();

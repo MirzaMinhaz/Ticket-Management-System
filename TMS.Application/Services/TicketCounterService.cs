@@ -1,32 +1,29 @@
 ﻿// TMS.Application/Services/TicketCounterService.cs
 using AutoMapper;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TMS.Application.DTOs;
-using TMS.Application.Exceptions;
 using TMS.Application.Interfaces.Persistence;
 using TMS.Application.Interfaces.Services;
 using TMS.Domain.Entities;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using System;
-using Microsoft.AspNetCore.Http; // <<<--- CONFIRM THIS USING
 
 namespace TMS.Application.Services
 {
     public class TicketCounterService : ITicketCounterService
     {
         private readonly ITicketCounterRepository _ticketCounterRepository;
+        private readonly ILocationRepository _locationRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly IHttpContextAccessor _httpContextAccessor; // <<<--- CONFIRM THIS FIELD
 
-        public TicketCounterService(ITicketCounterRepository ticketCounterRepository, IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor httpContextAccessor) // <<<--- CONFIRM CONSTRUCTOR PARAMETER
+        public TicketCounterService(ITicketCounterRepository ticketCounterRepository, ILocationRepository locationRepository, IUnitOfWork unitOfWork, IMapper mapper)
         {
             _ticketCounterRepository = ticketCounterRepository;
+            _locationRepository = locationRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _httpContextAccessor = httpContextAccessor; // <<<--- CONFIRM ASSIGNMENT
         }
 
         public async Task<IEnumerable<TicketCounterDto>> GetAllTicketCountersAsync()
@@ -35,123 +32,163 @@ namespace TMS.Application.Services
             return _mapper.Map<IEnumerable<TicketCounterDto>>(ticketCounters);
         }
 
-        public async Task<TicketCounterDto> GetTicketCounterByIdAsync(int id)
+        public async Task<TicketCounterDto> GetTicketCounterByIdAsync(int id) // CRITICAL: int ID
         {
             var ticketCounter = await _ticketCounterRepository.GetByIdAsync(id);
-            if (ticketCounter == null)
-            {
-                throw new NotFoundException($"Ticket Counter with ID {id} not found.");
-            }
             return _mapper.Map<TicketCounterDto>(ticketCounter);
+        }
+
+        public async Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(int locationId)
+        {
+            // You will need to implement a repository method to get ticket counters by location ID.
+            var ticketCounters = await _ticketCounterRepository.GetTicketCountersByLocationAsync(locationId);
+            return _mapper.Map<IEnumerable<TicketCounterDto>>(ticketCounters);
         }
 
         public async Task<TicketCounterDto> GetTicketCounterByCodeAsync(string counterCode)
         {
-            var ticketCounter = await _ticketCounterRepository.FindSingleAsync(tc => tc.CounterCode == counterCode);
-            if (ticketCounter == null)
-            {
-                throw new NotFoundException($"Ticket Counter with code '{counterCode}' not found.");
-            }
+            var ticketCounter = await _ticketCounterRepository.GetTicketCounterByCodeAsync(counterCode);
             return _mapper.Map<TicketCounterDto>(ticketCounter);
-        }
-
-        public async Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(int locationId) // <<<--- CONFIRM IMPLEMENTATION
-        {
-            var ticketCounters = await _ticketCounterRepository.FindAsync(tc => tc.LocationId == locationId); // Using FindAsync
-            return _mapper.Map<IEnumerable<TicketCounterDto>>(ticketCounters);
         }
 
         public async Task<TicketCounterDto> CreateTicketCounterAsync(CreateTicketCounterDto createDto)
         {
-            var existingCounterByName = await _ticketCounterRepository.FindSingleAsync(tc =>
-                tc.CounterName == createDto.CounterName && tc.LocationId == createDto.LocationId);
-            if (existingCounterByName != null)
+            // Validate LocationId (FK, int) exists
+            var locationExists = await _locationRepository.GetByIdAsync(createDto.LocationId); // CORRECTED: Use .LocationId
+            if (locationExists == null)
             {
-                throw new ApplicationException($"A ticket counter with the name '{createDto.CounterName}' already exists at this location.");
+                throw new Exception($"Location with ID {createDto.LocationId} not found."); // CORRECTED: Use .LocationId
             }
 
-            string newCounterCode = await GenerateNextCounterCode();
-
             var ticketCounter = _mapper.Map<TicketCounter>(createDto);
-            ticketCounter.CounterCode = newCounterCode;
 
-            var currentTime = DateTime.UtcNow;
-            var currentUsername = GetCurrentUsername();
+            // TicketCounter.Id (int) is auto-incremented by DB. DO NOT SET IT HERE.
+            // Generate CounterCode (string)
+            ticketCounter.CounterCode = await GenerateUniqueTicketCounterCode();
 
-            ticketCounter.CreatedAt = DateTime.UtcNow; // Set CreatedAt
-            ticketCounter.CreatedBy = GetCurrentUsername(); // Set CreatedBy
-
-            ticketCounter.LastModifiedAt = currentTime;
-            ticketCounter.LastModifiedBy = currentUsername;
+            ticketCounter.CreatedAt = DateTime.UtcNow;
+            ticketCounter.CreatedBy = "SystemUser";
+            ticketCounter.LastModifiedAt = DateTime.UtcNow;
+            ticketCounter.LastModifiedBy = "SystemUser";
 
             await _ticketCounterRepository.AddAsync(ticketCounter);
-            await _unitOfWork.CompleteAsync();
+            await _unitOfWork.CompleteAsync(); // This saves to DB and populates `ticketCounter.Id`
 
             return _mapper.Map<TicketCounterDto>(ticketCounter);
         }
 
-        public async Task UpdateTicketCounterAsync(int id, UpdateTicketCounterDto updateDto)
+        public async Task UpdateTicketCounterAsync(int id, UpdateTicketCounterDto updateDto) // CRITICAL: int ID
         {
             var existingTicketCounter = await _ticketCounterRepository.GetByIdAsync(id);
             if (existingTicketCounter == null)
             {
-                throw new NotFoundException($"Ticket Counter with ID {id} not found.");
+                throw new Exception($"Ticket Counter with ID {id} not found.");
             }
 
-            var duplicateCounter = await _ticketCounterRepository.FindSingleAsync(tc =>
-                tc.CounterName == updateDto.CounterName &&
-                tc.LocationId == updateDto.LocationId &&
-                tc.Id != id);
-            if (duplicateCounter != null)
+            // Validate LocationId (FK, int) exists if it's being updated
+            if (existingTicketCounter.LocationId != updateDto.LocationId) // CORRECTED: Use .LocationId
             {
-                throw new ApplicationException($"A ticket counter with the name '{updateDto.CounterName}' already exists at this location.");
+                var locationExists = await _locationRepository.GetByIdAsync(updateDto.LocationId); // CORRECTED: Use .LocationId
+                if (locationExists == null)
+                {
+                    throw new Exception($"Location with ID {updateDto.LocationId} not found."); // CORRECTED: Use .LocationId
+                }
             }
 
             _mapper.Map(updateDto, existingTicketCounter);
-
-            existingTicketCounter.LastModifiedAt = DateTime.UtcNow; // Set LastModifiedAt
-            existingTicketCounter.LastModifiedBy = GetCurrentUsername(); // Set LastModifiedBy
+            existingTicketCounter.LastModifiedAt = DateTime.UtcNow;
+            existingTicketCounter.LastModifiedBy = "SystemUser";
 
             _ticketCounterRepository.Update(existingTicketCounter);
             await _unitOfWork.CompleteAsync();
         }
 
-        public async Task DeleteTicketCounterAsync(int id)
-        {
-            var ticketCounter = await _ticketCounterRepository.GetByIdAsync(id);
-            if (ticketCounter == null)
-            {
-                throw new NotFoundException($"Ticket Counter with ID {id} not found.");
-            }
+        //public async Task<TicketCounterDto> CreateTicketCounterAsync(CreateTicketCounterDto createDto)
+        //{
+        //    // Validate LocationId (FK, int) exists
+        //    var locationExists = await _locationRepository.GetByIdAsync(createDto.locationId); // CRITICAL: Pass int ID
+        //    if (locationExists == null)
+        //    {
+        //        throw new Exception($"Location with ID {createDto.locationId} not found.");
+        //    }
 
-            await _ticketCounterRepository.DeleteAsync(ticketCounter); // Using DeleteAsync
+        //    var ticketCounter = _mapper.Map<TicketCounter>(createDto);
+
+        //    // TicketCounter.Id (int) is auto-incremented by DB. DO NOT SET IT HERE.
+        //    // Generate CounterCode (string)
+        //    ticketCounter.CounterCode = await GenerateUniqueTicketCounterCode();
+
+        //    ticketCounter.CreatedAt = DateTime.UtcNow;
+        //    ticketCounter.CreatedBy = "SystemUser";
+        //    ticketCounter.LastModifiedAt = DateTime.UtcNow;
+        //    ticketCounter.LastModifiedBy = "SystemUser";
+
+        //    await _ticketCounterRepository.AddAsync(ticketCounter);
+        //    await _unitOfWork.CompleteAsync(); // This saves to DB and populates `ticketCounter.Id`
+
+        //    return _mapper.Map<TicketCounterDto>(ticketCounter);
+        //}
+
+        //public async Task UpdateTicketCounterAsync(int id, UpdateTicketCounterDto updateDto) // CRITICAL: int ID
+        //{
+        //    var existingTicketCounter = await _ticketCounterRepository.GetByIdAsync(id);
+        //    if (existingTicketCounter == null)
+        //    {
+        //        throw new Exception($"Ticket Counter with ID {id} not found.");
+        //    }
+
+        //    // Validate LocationId (FK, int) exists if it's being updated
+        //    if (existingTicketCounter.LocationId != updateDto.locationId)
+        //    {
+        //        var locationExists = await _locationRepository.GetByIdAsync(updateDto.locationId); // CRITICAL: Pass int ID
+        //        if (locationExists == null)
+        //        {
+        //            throw new Exception($"Location with ID {updateDto.locationId} not found.");
+        //        }
+        //    }
+
+        //    _mapper.Map(updateDto, existingTicketCounter);
+        //    existingTicketCounter.LastModifiedAt = DateTime.UtcNow;
+        //    existingTicketCounter.LastModifiedBy = "SystemUser";
+
+        //    _ticketCounterRepository.Update(existingTicketCounter);
+        //    await _unitOfWork.CompleteAsync();
+        //}
+
+        public async Task DeleteTicketCounterAsync(int id) // CRITICAL: int ID
+        {
+            var existingTicketCounter = await _ticketCounterRepository.GetByIdAsync(id);
+            if (existingTicketCounter == null)
+            {
+                throw new Exception($"Ticket Counter with ID {id} not found.");
+            }
+            await _ticketCounterRepository.DeleteAsync(existingTicketCounter);
             await _unitOfWork.CompleteAsync();
         }
 
-        private async Task<string> GenerateNextCounterCode()
+        private async Task<string> GenerateUniqueTicketCounterCode()
         {
-            string lastCode = null;
             var allCounters = await _ticketCounterRepository.GetAllAsync();
-            if (allCounters != null && allCounters.Any())
-            {
-                lastCode = allCounters.OrderByDescending(tc => tc.CounterCode).FirstOrDefault()?.CounterCode;
-            }
+            string lastCode = allCounters
+                                .Select(tc => tc.CounterCode)
+                                .Where(code => code != null && code.StartsWith("TC-"))
+                                .OrderByDescending(code => code)
+                                .FirstOrDefault();
 
             int nextNumber = 1;
-            if (!string.IsNullOrEmpty(lastCode) && lastCode.StartsWith("TCO-"))
+            if (!string.IsNullOrEmpty(lastCode))
             {
-                if (int.TryParse(lastCode.Substring(4), out int lastNumber))
+                int lastHyphenIndex = lastCode.LastIndexOf('-');
+                if (lastHyphenIndex != -1 && lastCode.Length > lastHyphenIndex + 1)
                 {
-                    nextNumber = lastNumber + 1;
+                    string numericPart = lastCode.Substring(lastHyphenIndex + 1);
+                    if (int.TryParse(numericPart, out int lastNumber))
+                    {
+                        nextNumber = lastNumber + 1;
+                    }
                 }
             }
-
-            return $"TCO-{nextNumber:D3}";
-        }
-
-        private string GetCurrentUsername()
-        {
-            return _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "SystemUser";
+            return $"TC-{nextNumber:D3}"; // Formats as TC-001, TC-002, etc.
         }
     }
 }

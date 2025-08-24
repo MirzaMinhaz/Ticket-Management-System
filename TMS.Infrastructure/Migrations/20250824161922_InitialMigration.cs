@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace TMS.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,13 +17,14 @@ namespace TMS.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    LocationCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Address = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
-                    LocationCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -41,8 +42,8 @@ namespace TMS.Infrastructure.Migrations
                     Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     OperatorCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -58,8 +59,8 @@ namespace TMS.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RoleName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -79,8 +80,8 @@ namespace TMS.Infrastructure.Migrations
                     Role = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     UserCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -100,8 +101,8 @@ namespace TMS.Infrastructure.Migrations
                     EstimatedDurationHours = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     RouteCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -135,8 +136,8 @@ namespace TMS.Infrastructure.Migrations
                     OperatingHours = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -163,8 +164,8 @@ namespace TMS.Infrastructure.Migrations
                     Capacity = table.Column<int>(type: "int", nullable: false),
                     VehicleCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -192,8 +193,8 @@ namespace TMS.Infrastructure.Migrations
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     ScheduleCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -224,8 +225,8 @@ namespace TMS.Infrastructure.Migrations
                     IsBooked = table.Column<bool>(type: "bit", nullable: false),
                     SeatCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -248,9 +249,9 @@ namespace TMS.Infrastructure.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     ScheduleId = table.Column<int>(type: "int", nullable: false),
                     SeatId = table.Column<int>(type: "int", nullable: false),
-                    BookingCounterId = table.Column<int>(type: "int", nullable: true),
-                    DepartureCounterId = table.Column<int>(type: "int", nullable: true),
-                    ArrivalCounterId = table.Column<int>(type: "int", nullable: true),
+                    BookingCounterId = table.Column<int>(type: "int", nullable: false),
+                    DepartureCounterId = table.Column<int>(type: "int", nullable: false),
+                    ArrivalCounterId = table.Column<int>(type: "int", nullable: false),
                     TicketCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     PassengerName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     PassengerContact = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -258,8 +259,8 @@ namespace TMS.Infrastructure.Migrations
                     BookingDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -310,8 +311,8 @@ namespace TMS.Infrastructure.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>

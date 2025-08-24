@@ -1,44 +1,47 @@
 ﻿// TMS.Domain/Entities/Ticket.cs
 using System;
-using System.Collections.Generic;
 
 namespace TMS.Domain.Entities
 {
-    public class Ticket : BaseEntity<int> // Inherit from BaseEntity<int>
+    public class Ticket : BaseEntity<int> // CRITICAL: Ticket ID is int
     {
         // Primary key is 'Id' from BaseEntity<int>
 
-        public int UserId { get; set; }      // Foreign key to User (int)
-        public int ScheduleId { get; set; }  // Foreign key to Schedule (int)
-        public int SeatId { get; set; }      // Foreign key to Seat (int)
+        // Assuming these are INT foreign keys to other tables' INT Primary Keys
+        public int UserId { get; set; } // Assuming FK to Users.Id
+        public int ScheduleId { get; set; } // Assuming FK to Schedules.Id
+        public int SeatId { get; set; } // Assuming FK to Seats.Id
+        public int BookingCounterId { get; set; } // CRITICAL: FK to TicketCounter.Id (int)
+        public int DepartureCounterId { get; set; } // CRITICAL: FK to TicketCounter.Id (int)
+        public int ArrivalCounterId { get; set; } // CRITICAL: FK to TicketCounter.Id (int)
 
-        // Foreign Keys for Ticket Counters (Nullable if optional)
-        public int? BookingCounterId { get; set; }
-        public int? DepartureCounterId { get; set; }
-        public int? ArrivalCounterId { get; set; }
+        // Navigation properties (if configured)
+        // public User User { get; set; }
+        // public Schedule Schedule { get; set; }
+        // public Seat Seat { get; set; }
+        // public TicketCounter BookingCounter { get; set; }
+        // public TicketCounter DepartureCounter { get; set; }
+        // public TicketCounter ArrivalCounter { get; set; }
 
-        public string TicketCode { get; set; } // e.g., TIC-0001, TIC-0010
+
+        public string TicketCode { get; set; } // String, e.g., TKT-001
         public string PassengerName { get; set; }
-        public string PassengerContact { get; set; } // Email or Phone
+        public string PassengerContact { get; set; }
         public decimal FarePaid { get; set; }
-        public DateTime BookingDateTime { get; set; } = DateTime.UtcNow;
-        public string Status { get; set; } // 'Confirmed', 'Cancelled', 'Pending Payment', etc.
-
+        public DateTime BookingDateTime { get; set; }
+        public string Status { get; set; }
+        // Inherited CreatedAt, LastModifiedAt, CreatedBy, LastModifiedBy
         // Navigation properties
         public User User { get; set; }
-        public Schedule Schedule { get; set; }
-        public Seat BookedSeat { get; set; } // Renamed from 'Seat' for clarity
-
-        // Navigation properties for TicketCounters
-        public TicketCounter BookingCounter { get; set; }
-        public TicketCounter DepartureCounter { get; set; }
-        public TicketCounter ArrivalCounter { get; set; }
 
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
-        public Ticket()
-        {
-            Comments = new List<Comment>();
-        }
+        // This is the property you need to add to resolve the error
+        public Schedule Schedule { get; set; }
+
+        public Seat BookedSeat { get; set; }
+        public TicketCounter BookingCounter { get; set; }
+        public TicketCounter DepartureCounter { get; set; }
+        public TicketCounter ArrivalCounter { get; set; }
     }
 }

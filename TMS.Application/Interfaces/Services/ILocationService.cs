@@ -8,10 +8,10 @@ namespace TMS.Application.Interfaces.Services
     public interface ILocationService
     {
         Task<IEnumerable<LocationDto>> GetAllLocationsAsync();
-        Task<LocationDto> GetLocationByIdAsync(int id); // Change to int
-        Task<LocationDto> GetLocationByCodeAsync(string code);
+        Task<LocationDto> GetLocationByIdAsync(int id); // CRITICAL: int ID
+        Task<LocationDto> GetLocationByCodeAsync(string code); // String code
         Task<LocationDto> CreateLocationAsync(CreateLocationDto createDto);
-        Task UpdateLocationAsync(int id, UpdateLocationDto updateDto); // Change to int
-        Task DeleteLocationAsync(int id); // Change to int
+        Task UpdateLocationAsync(int id, UpdateLocationDto updateDto); // CRITICAL: int ID
+        Task DeleteLocationAsync(int id); // CRITICAL: int ID
     }
 }

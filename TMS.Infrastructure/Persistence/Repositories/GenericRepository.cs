@@ -1,12 +1,11 @@
 ﻿// TMS.Infrastructure/Persistence/Repositories/GenericRepository.cs
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using TMS.Application.Interfaces.Persistence;
-using TMS.Infrastructure.Persistence; // Ensure DbContext is accessible
+using TMS.Infrastructure.Persistence; // For DbContext
 
 namespace TMS.Infrastructure.Persistence.Repositories
 {
@@ -21,24 +20,14 @@ namespace TMS.Infrastructure.Persistence.Repositories
             _dbSet = _dbContext.Set<TEntity>();
         }
 
-        public async Task<TEntity> GetByIdAsync(TId id)
-        {
-            return await _dbSet.FindAsync(id);
-        }
-
         public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
             return await _dbSet.ToListAsync();
         }
 
-        public async Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        public async Task<TEntity> GetByIdAsync(TId id)
         {
-            return await _dbSet.Where(predicate).ToListAsync();
-        }
-
-        public async Task<TEntity> FindSingleAsync(Expression<Func<TEntity, bool>> predicate)
-        {
-            return await _dbSet.FirstOrDefaultAsync(predicate);
+            return await _dbSet.FindAsync(id);
         }
 
         public async Task AddAsync(TEntity entity)
@@ -51,10 +40,25 @@ namespace TMS.Infrastructure.Persistence.Repositories
             _dbSet.Update(entity);
         }
 
-        public async Task DeleteAsync(TEntity entity) // Correct async implementation
+        public async Task DeleteAsync(TEntity entity)
         {
             _dbSet.Remove(entity);
-            await Task.CompletedTask;
+            // No SaveChangesAsync here; UnitOfWork handles it
+        }
+
+        public async Task<IEnumerable<TEntity>> GetWhereAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbSet.Where(predicate).ToListAsync();
+        }
+
+        public async Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbSet.Where(predicate).ToListAsync();
+        }
+
+        public async Task<TEntity> FindSingleAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _dbSet.SingleOrDefaultAsync(predicate);
         }
     }
 }

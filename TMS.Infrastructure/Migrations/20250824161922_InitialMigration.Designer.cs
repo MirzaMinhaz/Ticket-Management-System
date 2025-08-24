@@ -12,8 +12,8 @@ using TMS.Infrastructure.Persistence;
 namespace TMS.Infrastructure.Migrations
 {
     [DbContext(typeof(TicketManagementDbContext))]
-    [Migration("20250709192352_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250824161922_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -88,6 +88,9 @@ namespace TMS.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("datetime2");
@@ -383,10 +386,10 @@ namespace TMS.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ArrivalCounterId")
+                    b.Property<int>("ArrivalCounterId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("BookingCounterId")
+                    b.Property<int>("BookingCounterId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("BookingDateTime")
@@ -399,7 +402,7 @@ namespace TMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("DepartureCounterId")
+                    b.Property<int>("DepartureCounterId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("FarePaid")
