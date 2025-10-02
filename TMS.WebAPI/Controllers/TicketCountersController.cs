@@ -10,7 +10,7 @@ using System.Linq; // Required for .Any()
 namespace TMS.WebAPI.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/[controller]")]
     public class TicketCountersController : ControllerBase
     {
         private readonly ITicketCounterService _ticketCounterService;

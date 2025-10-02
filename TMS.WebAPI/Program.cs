@@ -1,20 +1,22 @@
 // TMS.WebAPI/Program.cs
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration; // Ensure this is present
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration; // Ensure this is present
 using TMS.Application;
+using TMS.Application;
+using TMS.Application.Interfaces.Persistence;
+using TMS.Application.Interfaces.Persistence;
+using TMS.Application.Interfaces.Services;
+using TMS.Application.Services;
 using TMS.Infrastructure;
-using Microsoft.AspNetCore.Http;
-using TMS.Application;
-using TMS.Application.Interfaces.Persistence;
-using TMS.Infrastructure.Persistence.Repositories;
 using TMS.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
-using TMS.Application.Interfaces.Persistence;
-using TMS.Infrastructure.Persistence.Repositories;
-using Microsoft.EntityFrameworkCore;
 using TMS.Infrastructure.Persistence;
+using TMS.Infrastructure.Persistence.Repositories;
+using TMS.Infrastructure.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +36,8 @@ builder.Services.AddApplicationServices();   // <-- This line registers ITicketC
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>(); // Add this if you have UnitOfWork
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
 // IMPORTANT: Register your DbContext here!
 builder.Services.AddDbContext<TicketManagementDbContext>(options =>

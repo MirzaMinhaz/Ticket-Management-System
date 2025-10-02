@@ -16,6 +16,7 @@ namespace TMS.Application
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddScoped<ILocationService, LocationService>();
             services.AddScoped<ITicketCounterService, TicketCounterService>();
+            services.AddScoped<IVehicleService, VehicleService>();
             return services;
         }
 
