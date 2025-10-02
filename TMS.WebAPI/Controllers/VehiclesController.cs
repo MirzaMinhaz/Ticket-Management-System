@@ -13,10 +13,12 @@ namespace TMS.WebAPI.Controllers
     public class VehiclesController : ControllerBase
     {
         private readonly IVehicleService _vehicleService;
+        private readonly ILogger<VehiclesController> _logger;
 
-        public VehiclesController(IVehicleService vehicleService)
+        public VehiclesController(IVehicleService vehicleService, ILogger<VehiclesController> logger)
         {
             _vehicleService = vehicleService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -59,6 +61,22 @@ namespace TMS.WebAPI.Controllers
             }
         }
 
+        //[HttpPost]
+        //[ProducesResponseType(typeof(VehicleDto), 201)]
+        //[ProducesResponseType(400)]
+        //public async Task<ActionResult<VehicleDto>> Post([FromBody] CreateVehicleDto createDto)
+        //{
+        //    try
+        //    {
+        //        var createdVehicle = await _vehicleService.CreateVehicleAsync(createDto);
+        //        return CreatedAtAction(nameof(Get), new { id = createdVehicle.Id }, createdVehicle);
+        //    }
+        //    catch (ApplicationException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //}
+
         [HttpPost]
         [ProducesResponseType(typeof(VehicleDto), 201)]
         [ProducesResponseType(400)]
@@ -71,9 +89,16 @@ namespace TMS.WebAPI.Controllers
             }
             catch (ApplicationException ex)
             {
+                _logger.LogWarning(ex, "Application-level error during vehicle creation");
                 return BadRequest(ex.Message);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error creating vehicle");
+                return BadRequest("Unexpected error occurred.");
+            }
         }
+
 
         [HttpPut("{id}")]
         [ProducesResponseType(204)]

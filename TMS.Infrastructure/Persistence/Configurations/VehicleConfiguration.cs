@@ -15,7 +15,7 @@ namespace TMS.Infrastructure.Persistence.Configurations
             builder.HasKey(v => v.Id);
 
             // Configure properties
-            builder.Property(v => v.OperatorId).IsRequired();
+            builder.Property(v => v.OperatorId).IsRequired(false); // ✅ Make nullable
             builder.Property(v => v.Type).HasMaxLength(50).IsRequired();
             builder.Property(v => v.Model).HasMaxLength(100);
             builder.Property(v => v.LicensePlate).HasMaxLength(20).IsRequired();

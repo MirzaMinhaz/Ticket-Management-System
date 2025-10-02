@@ -88,7 +88,11 @@ namespace TMS.Application.Services
                 Model = createDto.Model,
                 LicensePlate = createDto.LicensePlate,
                 Capacity = createDto.Capacity,
-                VehicleCode = await GenerateVehicleCodeAsync()
+                VehicleCode = await GenerateVehicleCodeAsync(),
+                CreatedBy = "system",
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedBy = "system",
+                LastModifiedAt = DateTime.UtcNow
             };
 
             await _vehicleRepository.AddAsync(vehicle);
@@ -102,7 +106,7 @@ namespace TMS.Application.Services
                 LicensePlate = vehicle.LicensePlate,
                 Capacity = vehicle.Capacity,
                 VehicleCode = vehicle.VehicleCode,
-                CreatedAt = vehicle.CreatedAt,
+                CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = vehicle.LastModifiedAt
             };
         }
