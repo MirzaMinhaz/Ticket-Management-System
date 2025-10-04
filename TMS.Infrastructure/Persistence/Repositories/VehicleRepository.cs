@@ -49,8 +49,18 @@ namespace TMS.Infrastructure.Persistence.Repositories
 
         public async Task UpdateAsync(Vehicle entity)
         {
-            _context.Vehicles.Update(entity);
-            await _context.SaveChangesAsync();
+            
+            try
+            {
+                _context.Vehicles.Update(entity);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ EF Core Save Error: {ex.Message}");
+                Console.WriteLine($"🔍 Inner Exception: {ex.InnerException?.Message}");
+                throw; // rethrow to bubble up to controller
+            }
         }
 
         public async Task DeleteAsync(int id)

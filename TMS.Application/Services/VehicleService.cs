@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TMS.Application.DTOs;
@@ -113,20 +114,24 @@ namespace TMS.Application.Services
 
         public async Task UpdateVehicleAsync(int id, UpdateVehicleDto updateDto)
         {
+            if (updateDto == null)
+                throw new ArgumentNullException(nameof(updateDto), "Update data cannot be null.");
+
             var vehicle = await _vehicleRepository.GetByIdAsync(id);
             if (vehicle == null)
-            {
                 throw new NotFoundException($"Vehicle with ID {id} not found.");
-            }
 
-            vehicle.OperatorId = updateDto.OperatorId;
+            // Update fields
+            vehicle.OperatorId = updateDto.OperatorId; // Can be null
             vehicle.Type = updateDto.Type;
             vehicle.Model = updateDto.Model;
             vehicle.LicensePlate = updateDto.LicensePlate;
             vehicle.Capacity = updateDto.Capacity;
+            vehicle.LastModifiedAt = DateTime.UtcNow;
 
             await _vehicleRepository.UpdateAsync(vehicle);
         }
+
 
         public async Task DeleteVehicleAsync(int id)
         {
