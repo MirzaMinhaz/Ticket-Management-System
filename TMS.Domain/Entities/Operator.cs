@@ -10,7 +10,12 @@ namespace TMS.Domain.Entities
 
         public string Name { get; set; }
         public string Type { get; set; } // e.g., 'Bus Company', 'Airline'
-        public string OperatorCode { get; set; } // e.g., OPR-0001, OPR-0010
+        public string? OperatorCode { get; set; } // e.g., OPR-0001, OPR-0010
+
+        public DateTime? CreatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? LastModifiedAt { get; set; }
+        public string? LastModifiedBy { get; set; }
 
         // ... other operator details
 

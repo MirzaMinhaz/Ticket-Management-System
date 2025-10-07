@@ -13,10 +13,13 @@ namespace TMS.Application
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
+            // ***************************************************************
+            // ***************************************************************
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddScoped<ILocationService, LocationService>();
             services.AddScoped<ITicketCounterService, TicketCounterService>();
             services.AddScoped<IVehicleService, VehicleService>();
+            services.AddScoped<IOperatorService, OperatorService>();
             return services;
         }
 

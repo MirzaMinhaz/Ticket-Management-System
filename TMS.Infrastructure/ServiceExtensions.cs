@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TMS.Application.Interfaces.Persistence;
+using TMS.Application.Interfaces.Services;
+using TMS.Application.Services;
 using TMS.Infrastructure.Persistence;
 using TMS.Infrastructure.Persistence.Repositories;
 
@@ -19,8 +21,16 @@ namespace TMS.Infrastructure
             // Register IGenericRepository and GenericRepository as open generics
             services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
 
+            // ***************************************************************
+            // ***************************************************************
             // Register specific repositories
             services.AddScoped<ILocationRepository, LocationRepository>();
+            services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>(); // Add this if you have UnitOfWork
+            services.AddScoped<IVehicleService, VehicleService>();
+            services.AddScoped<IVehicleRepository, VehicleRepository>();
+            services.AddScoped<IOperatorRepository, OperatorRepository>();
+
             // Add other specific repositories as needed:
             // services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();
             // services.AddScoped<IRouteRepository, RouteRepository>();

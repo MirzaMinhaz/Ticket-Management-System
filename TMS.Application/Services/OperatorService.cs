@@ -28,7 +28,7 @@ namespace TMS.Application.Services
                 Name = o.Name,
                 Type = o.Type,
                 OperatorCode = o.OperatorCode,
-                CreatedAt = o.CreatedAt
+                CreatedAt = o.CreatedAt ?? DateTime.MinValue
             }).ToList();
         }
 
@@ -43,33 +43,45 @@ namespace TMS.Application.Services
                 Name = op.Name,
                 Type = op.Type,
                 OperatorCode = op.OperatorCode,
-                CreatedAt = op.CreatedAt
+                CreatedAt = op.CreatedAt ?? DateTime.MinValue
             };
         }
 
         public async Task<OperatorDto> CreateAsync(CreateOperatorDto dto)
         {
-            var operatorCode = await GenerateOperatorCodeAsync();
-
-            var entity = new Operator
+            try
             {
-                Name = dto.Name,
-                Type = dto.Type,
-                OperatorCode = operatorCode,
-                CreatedAt = DateTime.UtcNow
-            };
+                var operatorCode = await GenerateOperatorCodeAsync();
 
-            var result = await _repository.AddAsync(entity);
+                var entity = new Operator
+                {
+                    Name = dto.Name,
+                    Type = dto.Type,
+                    OperatorCode = operatorCode,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = "System",
+                    LastModifiedBy = "System"
+                };
 
-            return new OperatorDto
+                var result = await _repository.AddAsync(entity);
+
+                return new OperatorDto
+                {
+                    Id = result.Id,
+                    Name = result.Name,
+                    Type = result.Type,
+                    OperatorCode = result.OperatorCode,
+                    CreatedAt = result.CreatedAt ?? DateTime.MinValue
+                };
+            }
+            catch (Exception ex)
             {
-                Id = result.Id,
-                Name = result.Name,
-                Type = result.Type,
-                OperatorCode = result.OperatorCode,
-                CreatedAt = result.CreatedAt
-            };
+                // You can log the error here using your preferred logging framework
+                Console.WriteLine($"Error in CreateAsync: {ex.Message}");
+                throw; // Optionally rethrow to let the caller handle it
+            }
         }
+
 
 
         public async Task UpdateAsync(int id, UpdateOperatorDto dto)
@@ -79,8 +91,6 @@ namespace TMS.Application.Services
 
             op.Name = dto.Name;
             op.Type = dto.Type;
-            op.OperatorCode = dto.OperatorCode;
-            op.LastModifiedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(op);
         }
@@ -90,12 +100,49 @@ namespace TMS.Application.Services
             await _repository.DeleteAsync(id);
         }
 
+        //private async Task<string> GenerateOperatorCodeAsync()
+        //{
+        //    var allOperators = await _repository.GetAllAsync();
+        //    var nextId = allOperators.Any() ? allOperators.Max(o => o.Id) + 1 : 1;
+        //    return $"OPT-{nextId:D4}";
+        //}
+        //private async Task<string> GenerateOperatorCodeAsync()
+        //{
+        //    var lastOperator = await _repository
+        //        .GetAllAsync();
+
+        //    var lastCode = lastOperator
+        //        .OrderByDescending(o => o.OperatorCode)
+        //        .FirstOrDefault()?.OperatorCode;
+
+        //    if (string.IsNullOrEmpty(lastCode))
+        //        return "OPT-001";
+
+        //    var numberPart = int.Parse(lastCode.Split('-')[1]);
+        //    return $"OPT-{(numberPart + 1):D3}";
+        //}
         private async Task<string> GenerateOperatorCodeAsync()
         {
             var allOperators = await _repository.GetAllAsync();
-            var nextId = allOperators.Any() ? allOperators.Max(o => o.Id) + 1 : 1;
-            return $"OPT-{nextId:D4}";
+
+            if (!allOperators.Any())
+                return "OPT-001";
+
+            // Extract numeric part safely and sort by that
+            var maxNumber = allOperators
+                .Select(o =>
+                {
+                    if (string.IsNullOrEmpty(o.OperatorCode))
+                        return 0;
+
+                    var parts = o.OperatorCode.Split('-');
+                    return parts.Length == 2 && int.TryParse(parts[1], out var n) ? n : 0;
+                })
+                .Max();
+
+            return $"OPT-{(maxNumber + 1):D3}";
         }
+
 
     }
 }

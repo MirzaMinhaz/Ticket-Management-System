@@ -10,14 +10,12 @@ namespace TMS.Application.DTOs.Operator
     {
         public string Name { get; set; }
         public string Type { get; set; }
-        public string OperatorCode { get; set; }
     }
 
     public class UpdateOperatorDto
     {
         public string Name { get; set; }
         public string Type { get; set; }
-        public string OperatorCode { get; set; }
     }
 
     public class OperatorDto

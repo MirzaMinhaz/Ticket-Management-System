@@ -32,12 +32,6 @@ builder.Services.AddApplicationServices();   // <-- This line registers ITicketC
 
 // ***************************************************************
 
-// Register Infrastructure Services (moved from TMS.Application.ServiceExtensions)
-builder.Services.AddScoped<ILocationRepository, LocationRepository>();
-builder.Services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>(); // Add this if you have UnitOfWork
-builder.Services.AddScoped<IVehicleService, VehicleService>();
-builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
 // IMPORTANT: Register your DbContext here!
 builder.Services.AddDbContext<TicketManagementDbContext>(options =>
