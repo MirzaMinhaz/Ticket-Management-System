@@ -18,7 +18,17 @@ namespace TMS.Infrastructure.Persistence.Repositories
 
         public async Task<IEnumerable<Vehicle>> GetAllAsync()
         {
-            return await _context.Vehicles.ToListAsync();
+            
+            try
+            {
+                return await _context.Vehicles.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ EF Core Save Error: {ex.Message}");
+                Console.WriteLine($"🔍 Inner Exception: {ex.InnerException?.Message}");
+                throw; // rethrow to bubble up to controller
+            }
         }
 
         public async Task<Vehicle> GetByIdAsync(int id)

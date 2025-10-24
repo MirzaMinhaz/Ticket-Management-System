@@ -15,7 +15,7 @@ namespace TMS.Infrastructure.Persistence.Configurations
             builder.HasKey(v => v.Id);
 
             // Configure properties
-            builder.Property(v => v.OperatorId).IsRequired(false); // ✅ Make nullable
+            builder.Property(v => v.OperatorCode).IsRequired(false); // ✅ Make nullable
             builder.Property(v => v.Type).HasMaxLength(50).IsRequired();
             builder.Property(v => v.Model).HasMaxLength(100);
             builder.Property(v => v.LicensePlate).HasMaxLength(20).IsRequired();
@@ -27,7 +27,7 @@ namespace TMS.Infrastructure.Persistence.Configurations
             // Configure relationship with Operator
             builder.HasOne(v => v.Operator)
                    .WithMany()
-                   .HasForeignKey(v => v.OperatorId)
+                   .HasForeignKey(v => v.OperatorCode)
                    .OnDelete(DeleteBehavior.Restrict); // Use Restrict to prevent cascade delete
 
             // Add a unique index for the VehicleCode

@@ -116,7 +116,8 @@ namespace TMS.Infrastructure.Persistence
 
                 entity.HasMany(o => o.Vehicles)
                       .WithOne(v => v.Operator)
-                      .HasForeignKey(v => v.OperatorId)
+                      .HasForeignKey(v => v.OperatorCode)
+                      .HasPrincipalKey(o => o.OperatorCode)
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -344,7 +345,8 @@ namespace TMS.Infrastructure.Persistence
 
                 entity.HasOne(v => v.Operator)
                       .WithMany(o => o.Vehicles)
-                      .HasForeignKey(v => v.OperatorId)
+                      .HasForeignKey(v => v.OperatorCode)
+                      .HasPrincipalKey(o => o.OperatorCode)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(v => v.Schedules)
@@ -352,7 +354,7 @@ namespace TMS.Infrastructure.Persistence
                       .HasForeignKey(s => s.VehicleId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(v => v.OperatorId);
+                entity.HasIndex(v => v.OperatorCode);
             });
 
             // --- Configure Comment entity ---

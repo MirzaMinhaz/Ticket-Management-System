@@ -25,14 +25,15 @@ namespace TMS.Application.Services
             return vehicles.Select(v => new VehicleDto
             {
                 Id = v.Id,
-                OperatorId = v.OperatorId, // ✅ Safe: both sides nullable
+                OperatorCode = v.OperatorCode, // ✅ Safe: both sides nullable OperatorCode = vehicle.OperatorCode, // ✅ Updated
                 Type = v.Type,
                 Model = v.Model,
                 LicensePlate = v.LicensePlate,
                 Capacity = v.Capacity,
                 VehicleCode = v.VehicleCode,
                 CreatedAt = v.CreatedAt,
-                LastModifiedAt = v.LastModifiedAt
+                LastModifiedAt = v.LastModifiedAt ?? DateTime.UtcNow
+
             }).ToList();
         }
 
@@ -47,14 +48,14 @@ namespace TMS.Application.Services
             return new VehicleDto
             {
                 Id = vehicle.Id,
-                OperatorId = vehicle.OperatorId, // ✅ Safe
+                OperatorCode = vehicle.OperatorCode, // ✅ Updated,
                 Type = vehicle.Type,
                 Model = vehicle.Model,
                 LicensePlate = vehicle.LicensePlate,
                 Capacity = vehicle.Capacity,
                 VehicleCode = vehicle.VehicleCode,
                 CreatedAt = vehicle.CreatedAt,
-                LastModifiedAt = vehicle.LastModifiedAt
+                LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
             };
         }
 
@@ -69,14 +70,14 @@ namespace TMS.Application.Services
             return new VehicleDto
             {
                 Id = vehicle.Id,
-                OperatorId = vehicle.OperatorId,
+                OperatorCode = vehicle.OperatorCode,
                 Type = vehicle.Type,
                 Model = vehicle.Model,
                 LicensePlate = vehicle.LicensePlate,
                 Capacity = vehicle.Capacity,
                 VehicleCode = vehicle.VehicleCode,
                 CreatedAt = vehicle.CreatedAt,
-                LastModifiedAt = vehicle.LastModifiedAt
+                LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
             };
         }
 
@@ -84,7 +85,7 @@ namespace TMS.Application.Services
         {
             var vehicle = new Vehicle
             {
-                OperatorId = null, // ✅ explicitly null
+                OperatorCode = createDto.OperatorCode, // ✅ explicitly null
                 Type = createDto.Type,
                 Model = createDto.Model,
                 LicensePlate = createDto.LicensePlate,
@@ -101,14 +102,14 @@ namespace TMS.Application.Services
             return new VehicleDto
             {
                 Id = vehicle.Id,
-                OperatorId = vehicle.OperatorId,
+                OperatorCode = vehicle.OperatorCode,
                 Type = vehicle.Type,
                 Model = vehicle.Model,
                 LicensePlate = vehicle.LicensePlate,
                 Capacity = vehicle.Capacity,
                 VehicleCode = vehicle.VehicleCode,
                 CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = vehicle.LastModifiedAt
+                LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
             };
         }
 
@@ -122,7 +123,7 @@ namespace TMS.Application.Services
                 throw new NotFoundException($"Vehicle with ID {id} not found.");
 
             // Update fields
-            vehicle.OperatorId = updateDto.OperatorId; // Can be null
+            vehicle.OperatorCode = updateDto.OperatorCode; // Can be null
             vehicle.Type = updateDto.Type;
             vehicle.Model = updateDto.Model;
             vehicle.LicensePlate = updateDto.LicensePlate;
