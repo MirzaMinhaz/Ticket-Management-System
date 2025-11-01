@@ -38,10 +38,10 @@ namespace TMS.Application.Services
             return _mapper.Map<TicketCounterDto>(ticketCounter);
         }
 
-        public async Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(int locationId)
+        public async Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(string locationCode)
         {
             // You will need to implement a repository method to get ticket counters by location ID.
-            var ticketCounters = await _ticketCounterRepository.GetTicketCountersByLocationAsync(locationId);
+            var ticketCounters = await _ticketCounterRepository.GetTicketCountersByLocationAsync(locationCode);
             return _mapper.Map<IEnumerable<TicketCounterDto>>(ticketCounters);
         }
 
@@ -53,30 +53,43 @@ namespace TMS.Application.Services
 
         public async Task<TicketCounterDto> CreateTicketCounterAsync(CreateTicketCounterDto createDto)
         {
-            // Validate LocationId (FK, int) exists
-            var locationExists = await _locationRepository.GetByIdAsync(createDto.LocationId); // CORRECTED: Use .LocationId
-            if (locationExists == null)
+            try
             {
-                throw new Exception($"Location with ID {createDto.LocationId} not found."); // CORRECTED: Use .LocationId
+                // Validate LocationCode exists
+                var locationExists = await _locationRepository.GetByCodeAsync(createDto.LocationCode);
+                if (locationExists == null)
+                {
+                    throw new ArgumentException($"Location with code '{createDto.LocationCode}' not found.");
+                }
+
+                var ticketCounter = _mapper.Map<TicketCounter>(createDto);
+
+                ticketCounter.CounterCode = await GenerateUniqueTicketCounterCode();
+                ticketCounter.IsActive = true;
+                ticketCounter.OperatingHours = "7:00 AM - 11:00PM";
+
+                ticketCounter.CreatedAt = DateTime.UtcNow;
+                ticketCounter.CreatedBy = "SystemUser";
+                ticketCounter.LastModifiedAt = DateTime.UtcNow;
+                ticketCounter.LastModifiedBy = "SystemUser";
+
+                await _ticketCounterRepository.AddAsync(ticketCounter);
+                await _unitOfWork.CompleteAsync();
+
+                return _mapper.Map<TicketCounterDto>(ticketCounter);
             }
+            catch (Exception ex)
+            {
+                // Optional: log the error to a logging service
+                Console.Error.WriteLine($"[CreateTicketCounterAsync] Error: {ex.Message}");
 
-            var ticketCounter = _mapper.Map<TicketCounter>(createDto);
-
-            // TicketCounter.Id (int) is auto-incremented by DB. DO NOT SET IT HERE.
-            // Generate CounterCode (string)
-            ticketCounter.CounterCode = await GenerateUniqueTicketCounterCode();
-
-            ticketCounter.CreatedAt = DateTime.UtcNow;
-            ticketCounter.CreatedBy = "SystemUser";
-            ticketCounter.LastModifiedAt = DateTime.UtcNow;
-            ticketCounter.LastModifiedBy = "SystemUser";
-
-            await _ticketCounterRepository.AddAsync(ticketCounter);
-            await _unitOfWork.CompleteAsync(); // This saves to DB and populates `ticketCounter.Id`
-
-            return _mapper.Map<TicketCounterDto>(ticketCounter);
+                // Rethrow or wrap in a custom exception if needed
+                throw new ApplicationException("Failed to create ticket counter.", ex);
+            }
         }
 
+
+        // TMS.Application/Services/TicketCounterService.cs
         public async Task UpdateTicketCounterAsync(int id, UpdateTicketCounterDto updateDto) // CRITICAL: int ID
         {
             var existingTicketCounter = await _ticketCounterRepository.GetByIdAsync(id);
@@ -85,13 +98,15 @@ namespace TMS.Application.Services
                 throw new Exception($"Ticket Counter with ID {id} not found.");
             }
 
-            // Validate LocationId (FK, int) exists if it's being updated
-            if (existingTicketCounter.LocationId != updateDto.LocationId) // CORRECTED: Use .LocationId
+            // Validate LocationCode (FK, string) exists if it's being updated
+            if (existingTicketCounter.LocationCode != updateDto.LocationCode)
             {
-                var locationExists = await _locationRepository.GetByIdAsync(updateDto.LocationId); // CORRECTED: Use .LocationId
+                // Use GetByCodeAsync since LocationCode is a string
+                var locationExists = await _locationRepository.GetByCodeAsync(updateDto.LocationCode);
                 if (locationExists == null)
                 {
-                    throw new Exception($"Location with ID {updateDto.LocationId} not found."); // CORRECTED: Use .LocationId
+                    // Update exception message to reference LocationCode
+                    throw new Exception($"Location with code {updateDto.LocationCode} not found.");
                 }
             }
 

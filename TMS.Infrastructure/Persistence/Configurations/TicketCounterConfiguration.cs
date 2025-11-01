@@ -10,7 +10,7 @@ namespace TMS.Infrastructure.Persistence.Configurations
         {
             // Primary Key handled by DbContext convention for BaseEntity.Id -> TicketCounterId
 
-            builder.Property(tc => tc.LocationId)
+            builder.Property(tc => tc.LocationCode)
                 .IsRequired();
 
             builder.Property(tc => tc.CounterName)
@@ -20,8 +20,9 @@ namespace TMS.Infrastructure.Persistence.Configurations
             builder.Property(tc => tc.CounterCode)
                 .HasMaxLength(50);
 
-            builder.HasIndex(tc => new { tc.LocationId, tc.CounterName })
+            builder.HasIndex(tc => new { tc.LocationCode, tc.CounterName })
                 .IsUnique(); // Ensure unique counter name per location
+
 
             builder.Property(tc => tc.AddressDetails)
                 .HasMaxLength(500);

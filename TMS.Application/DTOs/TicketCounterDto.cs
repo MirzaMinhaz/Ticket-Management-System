@@ -6,12 +6,12 @@ namespace TMS.Application.DTOs
     public class TicketCounterDto
     {
         public int Id { get; set; } // Change from Guid to int (this is the actual DB ID)
-        public int LocationId { get; set; } // Change from Guid to int
+        public string LocationCode { get; set; } // Change from Guid to int
         public string CounterName { get; set; }
         public string CounterCode { get; set; } // The formatted string ID like TCO-001
         public string AddressDetails { get; set; }
         public string ContactNumber { get; set; }
-        public string OperatingHours { get; set; }
+        public string? OperatingHours { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastModifiedAt { get; set; }
@@ -23,7 +23,7 @@ namespace TMS.Application.DTOs
     public class CreateTicketCounterDto
     {
         [Required]
-        public int LocationId { get; set; } // Change from Guid to int
+        public string LocationCode { get; set; } // Change from Guid to int
         [Required]
         [StringLength(100, MinimumLength = 3)]
         public string CounterName { get; set; }
@@ -33,14 +33,14 @@ namespace TMS.Application.DTOs
         [StringLength(20)]
         public string ContactNumber { get; set; }
         [StringLength(100)]
-        public string OperatingHours { get; set; }
+        public string? OperatingHours { get; set; }
         public bool IsActive { get; set; } = true;
     }
 
     public class UpdateTicketCounterDto
     {
         [Required]
-        public int LocationId { get; set; } // Change from Guid to int
+        public string LocationCode { get; set; } // Change from Guid to int
         [Required]
         [StringLength(100, MinimumLength = 3)]
         public string CounterName { get; set; }
@@ -50,7 +50,7 @@ namespace TMS.Application.DTOs
         [StringLength(20)]
         public string ContactNumber { get; set; }
         [StringLength(100)]
-        public string OperatingHours { get; set; }
+        public string? OperatingHours { get; set; }
         public bool IsActive { get; set; }
     }
 }

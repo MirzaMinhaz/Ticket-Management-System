@@ -12,8 +12,8 @@ using TMS.Infrastructure.Persistence;
 namespace TMS.Infrastructure.Migrations
 {
     [DbContext(typeof(TicketManagementDbContext))]
-    [Migration("20250824161922_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20251101074140_FixTicketCounterIdIdentity")]
+    partial class FixTicketCounterIdIdentity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -133,18 +133,16 @@ namespace TMS.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CreatedBy")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("LastModifiedBy")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
@@ -513,11 +511,12 @@ namespace TMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("LocationId")
-                        .HasColumnType("int");
+                    b.Property<string>("LocationCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("OperatingHours")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -528,7 +527,7 @@ namespace TMS.Infrastructure.Migrations
 
                     b.HasIndex("CounterName");
 
-                    b.HasIndex("LocationId");
+                    b.HasIndex("LocationCode");
 
                     b.ToTable("TicketCounters");
                 });
@@ -629,8 +628,8 @@ namespace TMS.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("OperatorId")
-                        .HasColumnType("int");
+                    b.Property<string>("OperatorCode")
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -647,7 +646,7 @@ namespace TMS.Infrastructure.Migrations
                     b.HasIndex("LicensePlate")
                         .IsUnique();
 
-                    b.HasIndex("OperatorId");
+                    b.HasIndex("OperatorCode");
 
                     b.HasIndex("VehicleCode")
                         .IsUnique();
@@ -773,22 +772,21 @@ namespace TMS.Infrastructure.Migrations
 
             modelBuilder.Entity("TMS.Domain.Entities.TicketCounter", b =>
                 {
-                    b.HasOne("TMS.Domain.Entities.Location", "Location")
+                    b.HasOne("TMS.Domain.Entities.Location", null)
                         .WithMany("TicketCounters")
-                        .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("LocationCode")
+                        .HasPrincipalKey("LocationCode")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Location");
                 });
 
             modelBuilder.Entity("TMS.Domain.Entities.Vehicle", b =>
                 {
                     b.HasOne("TMS.Domain.Entities.Operator", "Operator")
                         .WithMany("Vehicles")
-                        .HasForeignKey("OperatorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("OperatorCode")
+                        .HasPrincipalKey("OperatorCode")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Operator");
                 });

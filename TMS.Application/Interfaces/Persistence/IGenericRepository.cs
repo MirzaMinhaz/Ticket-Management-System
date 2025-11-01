@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using TMS.Domain.Entities;
 
 namespace TMS.Application.Interfaces.Persistence
 {
@@ -10,6 +11,8 @@ namespace TMS.Application.Interfaces.Persistence
     {
         Task<IEnumerable<TEntity>> GetAllAsync();
         Task<TEntity> GetByIdAsync(TId id);
+        Task<Location> GetByCodeAsync(string locationCode);
+
         Task AddAsync(TEntity entity);
         void Update(TEntity entity); // Update typically doesn't need to be async or return value
         Task DeleteAsync(TEntity entity);

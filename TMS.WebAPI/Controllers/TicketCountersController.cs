@@ -31,9 +31,9 @@ namespace TMS.WebAPI.Controllers
         [HttpGet("byLocation/{locationId}")] // <<<--- CONFIRM ROUTE AND METHOD NAME
         [ProducesResponseType(typeof(IEnumerable<TicketCounterDto>), 200)]
         [ProducesResponseType(404)] // Or 200 with empty list if no counters
-        public async Task<ActionResult<IEnumerable<TicketCounterDto>>> GetTicketCountersByLocation(int locationId)
+        public async Task<ActionResult<IEnumerable<TicketCounterDto>>> GetTicketCountersByLocation(string locationCode)
         {
-            var ticketCounters = await _ticketCounterService.GetTicketCountersByLocationAsync(locationId); // <<<--- CONFIRM CALL
+            var ticketCounters = await _ticketCounterService.GetTicketCountersByLocationAsync(locationCode); // <<<--- CONFIRM CALL
             if (ticketCounters == null || !ticketCounters.Any()) // Use .Any() directly
             {
                 return Ok(new List<TicketCounterDto>()); // Return 200 OK with an empty list

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using TMS.Application.Interfaces.Persistence;
+using TMS.Domain.Entities;
 using TMS.Infrastructure.Persistence; // For DbContext
 
 namespace TMS.Infrastructure.Persistence.Repositories
@@ -29,6 +30,11 @@ namespace TMS.Infrastructure.Persistence.Repositories
         {
             return await _dbSet.FindAsync(id);
         }
+        public async Task<Location> GetByCodeAsync(string locationCode)
+        {
+            return await _dbContext.Locations.FirstOrDefaultAsync(l => l.LocationCode == locationCode);
+        }
+
 
         public async Task AddAsync(TEntity entity)
         {

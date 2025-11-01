@@ -9,7 +9,8 @@ namespace TMS.Application.Interfaces.Persistence
 {
     public interface ITicketCounterRepository : IGenericRepository<TicketCounter, int> // CRITICAL: TId is int
     {
-        Task<IEnumerable<TicketCounter>> GetTicketCountersByLocationAsync(int locationId);
+        Task<IEnumerable<TicketCounter>> GetTicketCountersByLocationAsync(string locationCode);
+
         Task<TicketCounter> GetTicketCounterByCodeAsync(string counterCode);
         // Any specific methods for TicketCounter beyond generic ones
     }

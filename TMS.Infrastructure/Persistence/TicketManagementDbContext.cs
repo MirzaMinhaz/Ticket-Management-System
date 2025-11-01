@@ -1,7 +1,6 @@
-﻿// TMS.Infrastructure/Persistence/TicketManagementDbContext.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TMS.Domain.Entities;
-using System; // Required for DateTime
+using System;
 
 namespace TMS.Infrastructure.Persistence
 {
@@ -30,7 +29,6 @@ namespace TMS.Infrastructure.Persistence
             base.OnModelCreating(modelBuilder);
 
             // --- Global Decimal Precision Configuration (Optional but good practice) ---
-            // This applies a default precision/scale to all decimal properties unless overridden
             modelBuilder.HasAnnotation("Relational:MaxIdentifierLength", 128); // For SQL Server
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
@@ -38,7 +36,7 @@ namespace TMS.Infrastructure.Persistence
                 {
                     if (property.ClrType == typeof(decimal) || property.ClrType == typeof(decimal?))
                     {
-                        property.SetColumnType("decimal(18,2)"); // Default precision and scale for decimals
+                        property.SetColumnType("decimal(18,2)");
                     }
                 }
             }
@@ -50,21 +48,15 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.LocationCode).IsRequired().HasMaxLength(10);
-                entity.HasIndex(e => e.LocationCode).IsUnique(); // Ensure LOC-0001 is unique
+                entity.HasIndex(e => e.LocationCode).IsUnique();
 
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Address).HasMaxLength(250);
 
-                // Combined unique index for Name and Type
                 entity.HasIndex(e => new { e.Name, e.Type }).IsUnique();
 
                 // Navigation properties (Collections on Location)
-                entity.HasMany(l => l.TicketCounters)
-                      .WithOne(tc => tc.Location)
-                      .HasForeignKey(tc => tc.LocationId)
-                      .OnDelete(DeleteBehavior.Restrict);
-
                 entity.HasMany(l => l.DepartureRoutes)
                       .WithOne(r => r.DepartureLocation)
                       .HasForeignKey(r => r.DepartureLocationId)
@@ -74,6 +66,15 @@ namespace TMS.Infrastructure.Persistence
                       .WithOne(r => r.DestinationLocation)
                       .HasForeignKey(r => r.DestinationLocationId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                // ✅ FIX: Explicitly configure the inverse relationship from Location to TicketCounter
+                // This forces the collection to use the string foreign key (LocationCode)
+                // and prevents the convention from creating the LocationId shadow property.
+                entity.HasMany(l => l.TicketCounters)
+                      .WithOne() // The TicketCounter entity does not have a Location Navigation property
+                      .HasPrincipalKey(l => l.LocationCode) // Location's unique key is LocationCode
+                      .HasForeignKey(tc => tc.LocationCode) // TicketCounter's foreign key is LocationCode
+                      .IsRequired(); // Assuming LocationCode is a required FK in TicketCounter
             });
 
             // --- Configure TicketCounter entity ---
@@ -82,36 +83,39 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
-                entity.Property(e => e.CounterCode).IsRequired().HasMaxLength(10);
-                entity.HasIndex(e => e.CounterCode).IsUnique(); // Ensure TCO-0001 is unique
+                entity.Property(e => e.CounterCode)
+                      .IsRequired()
+                      .HasMaxLength(10);
+                entity.HasIndex(e => e.CounterCode).IsUnique();
 
-                entity.Property(e => e.CounterName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.CounterName)
+                      .IsRequired()
+                      .HasMaxLength(100);
                 entity.Property(e => e.AddressDetails).HasMaxLength(250);
                 entity.Property(e => e.ContactNumber).HasMaxLength(20);
                 entity.Property(e => e.OperatingHours).HasMaxLength(100);
 
-                // Foreign key to Location
-                entity.HasOne(tc => tc.Location)
-                      .WithMany(l => l.TicketCounters)
-                      .HasForeignKey(tc => tc.LocationId)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                // Add indices for common lookups
-                entity.HasIndex(tc => tc.LocationId);
                 entity.HasIndex(tc => tc.CounterName);
+
+                // ❌ Removed the old block:
+                // entity.HasOne<Location>().WithMany().HasForeignKey(tc => tc.LocationCode).HasPrincipalKey(l => l.LocationCode).OnDelete(DeleteBehavior.Restrict);
+                // This redundant configuration is now handled in the Location entity block above (entity.HasMany(l => l.TicketCounters)...)
             });
+
 
             // --- Configure Operator entity ---
             modelBuilder.Entity<Operator>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Id).ValueGeneratedOnAdd()
+                .HasColumnType("int")
+                .UseIdentityColumn();
 
                 entity.Property(e => e.OperatorCode).IsRequired().HasMaxLength(10);
-                entity.HasIndex(e => e.OperatorCode).IsUnique(); // Ensure OPR-0001 is unique
+                entity.HasIndex(e => e.OperatorCode).IsUnique();
 
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.HasIndex(e => e.Name).IsUnique(); // Operator name should be unique
+                entity.HasIndex(e => e.Name).IsUnique();
                 entity.Property(e => e.Type).HasMaxLength(50);
 
                 entity.HasMany(o => o.Vehicles)
@@ -128,7 +132,7 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.RoleName).IsRequired().HasMaxLength(50);
-                entity.HasIndex(e => e.RoleName).IsUnique(); // Role names should be unique
+                entity.HasIndex(e => e.RoleName).IsUnique();
             });
 
             // --- Configure Route entity ---
@@ -138,11 +142,9 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.RouteCode).IsRequired().HasMaxLength(10);
-                entity.HasIndex(e => e.RouteCode).IsUnique(); // Ensure RTE-0001 is unique
+                entity.HasIndex(e => e.RouteCode).IsUnique();
 
                 entity.Property(e => e.RouteName).IsRequired().HasMaxLength(200);
-                // Decimal type configured globally, but can be overridden here if needed:
-                // entity.Property(e => e.EstimatedDurationHours).HasColumnType("decimal(18,2)");
 
                 // Foreign keys to DepartureLocation and DestinationLocation
                 entity.HasOne(r => r.DepartureLocation)
@@ -163,7 +165,6 @@ namespace TMS.Infrastructure.Persistence
                 // Add indices for foreign keys and common query fields
                 entity.HasIndex(r => r.DepartureLocationId);
                 entity.HasIndex(r => r.DestinationLocationId);
-                // Composite unique index for routes (e.g., Dhaka to Chittagong should be unique)
                 entity.HasIndex(r => new { r.DepartureLocationId, r.DestinationLocationId, r.RouteName }).IsUnique();
             });
 
@@ -174,11 +175,9 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.ScheduleCode).IsRequired().HasMaxLength(20);
-                entity.HasIndex(e => e.ScheduleCode).IsUnique(); // Ensure SCD-0001 is unique
+                entity.HasIndex(e => e.ScheduleCode).IsUnique();
 
                 entity.Property(e => e.Status).HasMaxLength(50);
-                // Decimal type configured globally:
-                // entity.Property(e => e.BaseFare).HasColumnType("decimal(18,2)");
 
                 // Foreign keys
                 entity.HasOne(s => s.Route)
@@ -194,12 +193,12 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasMany(s => s.Seats)
                       .WithOne(seat => seat.Schedule)
                       .HasForeignKey(seat => seat.ScheduleId)
-                      .OnDelete(DeleteBehavior.Cascade); // Seats are intrinsically linked to a schedule
+                      .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(s => s.Tickets)
                       .WithOne(t => t.Schedule)
                       .HasForeignKey(t => t.ScheduleId)
-                      .OnDelete(DeleteBehavior.Restrict); // Tickets should not be deleted if schedule is deleted
+                      .OnDelete(DeleteBehavior.Restrict);
 
                 // Add indices for foreign keys and common query fields
                 entity.HasIndex(s => s.RouteId);
@@ -214,8 +213,8 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
-                entity.Property(e => e.SeatCode).IsRequired().HasMaxLength(20); // e.g. SEA-0001
-                entity.HasIndex(e => e.SeatCode).IsUnique(); // Ensure SEA-0001 is unique
+                entity.Property(e => e.SeatCode).IsRequired().HasMaxLength(20);
+                entity.HasIndex(e => e.SeatCode).IsUnique();
 
                 entity.Property(e => e.SeatNumber).IsRequired().HasMaxLength(5);
 
@@ -243,13 +242,11 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.TicketCode).IsRequired().HasMaxLength(20);
-                entity.HasIndex(e => e.TicketCode).IsUnique(); // Ensure TIC-0001 is unique
+                entity.HasIndex(e => e.TicketCode).IsUnique();
 
                 entity.Property(e => e.PassengerName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.PassengerContact).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Status).HasMaxLength(50);
-                // Decimal type configured globally:
-                // entity.Property(e => e.FarePaid).HasColumnType("decimal(18,2)");
 
                 // Foreign keys
                 entity.HasOne(t => t.User)
@@ -267,31 +264,30 @@ namespace TMS.Infrastructure.Persistence
                       .HasForeignKey(t => t.SeatId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                // === FIX FOR CASCADE PATHS: Explicitly set DeleteBehavior.NoAction ===
-                // This is crucial to prevent multiple cascade paths when deleting TicketCounters
+                // === Prevent Multiple Cascade Paths: Explicitly set DeleteBehavior.NoAction ===
                 entity.HasOne(t => t.BookingCounter)
-                      .WithMany(tc => tc.BookingTickets) // Assuming collection on TicketCounter
+                      .WithMany(tc => tc.BookingTickets)
                       .HasForeignKey(t => t.BookingCounterId)
-                      .IsRequired(false) // Matches nullable FK property
-                      .OnDelete(DeleteBehavior.NoAction); // Changed from SetNull to NoAction
+                      .IsRequired(false)
+                      .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasOne(t => t.DepartureCounter)
-                      .WithMany(tc => tc.DepartureTickets) // Assuming collection on TicketCounter
+                      .WithMany(tc => tc.DepartureTickets)
                       .HasForeignKey(t => t.DepartureCounterId)
                       .IsRequired(false)
-                      .OnDelete(DeleteBehavior.NoAction); // Changed from SetNull to NoAction
+                      .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasOne(t => t.ArrivalCounter)
-                      .WithMany(tc => tc.ArrivalTickets) // Assuming collection on TicketCounter
+                      .WithMany(tc => tc.ArrivalTickets)
                       .HasForeignKey(t => t.ArrivalCounterId)
                       .IsRequired(false)
-                      .OnDelete(DeleteBehavior.NoAction); // Changed from SetNull to NoAction
+                      .OnDelete(DeleteBehavior.NoAction);
                 // ===================================================================
 
                 entity.HasMany(t => t.Comments)
                       .WithOne(c => c.Ticket)
                       .HasForeignKey(c => c.TicketId)
-                      .OnDelete(DeleteBehavior.Cascade); // Comments are usually deleted with their ticket
+                      .OnDelete(DeleteBehavior.Cascade);
 
                 // Add indices for foreign keys and common query fields
                 entity.HasIndex(t => t.UserId);
@@ -308,15 +304,15 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.UserCode).IsRequired().HasMaxLength(10);
-                entity.HasIndex(e => e.UserCode).IsUnique(); // Ensure USR-0001 is unique
+                entity.HasIndex(e => e.UserCode).IsUnique();
 
                 entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
-                entity.HasIndex(e => e.Username).IsUnique(); // Username should be unique
+                entity.HasIndex(e => e.Username).IsUnique();
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
-                entity.HasIndex(e => e.Email).IsUnique(); // Email should be unique
+                entity.HasIndex(e => e.Email).IsUnique();
 
-                entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(255); // Standard for hashed passwords
-                entity.Property(e => e.Role).IsRequired().HasMaxLength(50); // Consider FK to Role entity if you have a UserRole entity
+                entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
 
                 entity.HasMany(u => u.Tickets)
                       .WithOne(t => t.User)
@@ -336,12 +332,12 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
                 entity.Property(e => e.VehicleCode).IsRequired().HasMaxLength(10);
-                entity.HasIndex(e => e.VehicleCode).IsUnique(); // Ensure VHC-0001 is unique
+                entity.HasIndex(e => e.VehicleCode).IsUnique();
 
                 entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Model).HasMaxLength(100);
                 entity.Property(e => e.LicensePlate).IsRequired().HasMaxLength(20);
-                entity.HasIndex(e => e.LicensePlate).IsUnique(); // License plates should be unique
+                entity.HasIndex(e => e.LicensePlate).IsUnique();
 
                 entity.HasOne(v => v.Operator)
                       .WithMany(o => o.Vehicles)
@@ -369,7 +365,7 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasOne(c => c.Ticket)
                       .WithMany(t => t.Comments)
                       .HasForeignKey(c => c.TicketId)
-                      .OnDelete(DeleteBehavior.Cascade); // Comments are dependent on Ticket
+                      .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(c => c.User)
                       .WithMany(u => u.Comments)
@@ -380,24 +376,6 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasIndex(c => c.UserId);
                 entity.HasIndex(c => c.CreatedAt);
             });
-
-            // --- Global Audit Property Configuration (CreatedAt, LastModifiedAt, CreatedBy, LastModifiedBy) ---
-            // This is a common pattern to automatically set audit properties.
-            // You might implement this in SaveChangesAsync in DbContext or via an interceptor.
-            // This section is commented out as it's typically handled outside OnModelCreating,
-            // but included as a reminder of where it would fit if done via explicit property config.
-            /*
-            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-            {
-                if (typeof(BaseEntity<int>).IsAssignableFrom(entityType.ClrType)) // Check if it inherits BaseEntity<int>
-                {
-                    modelBuilder.Entity(entityType.Name).Property<DateTime>(nameof(BaseEntity<int>.CreatedAt)).IsRequired();
-                    modelBuilder.Entity(entityType.Name).Property<DateTime?>(nameof(BaseEntity<int>.LastModifiedAt));
-                    modelBuilder.Entity(entityType.Name).Property<string>(nameof(BaseEntity<int>.CreatedBy)).IsRequired(false); // Make nullable if not always set
-                    modelBuilder.Entity(entityType.Name).Property<string>(nameof(BaseEntity<int>.LastModifiedBy)).IsRequired(false);
-                }
-            }
-            */
         }
     }
 }

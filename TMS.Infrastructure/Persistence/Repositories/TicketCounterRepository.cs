@@ -25,13 +25,13 @@ namespace TMS.Infrastructure.Persistence.Repositories
         /// </summary>
         /// <param name="locationId">The ID of the location to filter by.</param>
         /// <returns>A list of TicketCounter entities.</returns>
-        public async Task<IEnumerable<TicketCounter>> GetTicketCountersByLocationAsync(int locationId)
+        public async Task<IEnumerable<TicketCounter>> GetTicketCountersByLocationAsync(string locationCode)
         {
             return await _dbContext.TicketCounters
-                .Where(tc => tc.LocationId == locationId)
-                .Include(tc => tc.Location) // Include the Location navigation property if needed for a richer result
+                .Where(tc => tc.LocationCode == locationCode)
                 .ToListAsync();
         }
+
 
         /// <summary>
         /// Retrieves a single ticket counter by its unique counter code.

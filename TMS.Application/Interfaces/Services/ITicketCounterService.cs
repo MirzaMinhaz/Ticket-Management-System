@@ -15,7 +15,7 @@ namespace TMS.Application.Interfaces.Services
         Task DeleteTicketCounterAsync(int id);
 
         // Add this method to the interface
-        Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(int locationId);
+        Task<IEnumerable<TicketCounterDto>> GetTicketCountersByLocationAsync(string locationCode);
         Task<TicketCounterDto> GetTicketCounterByCodeAsync(string counterCode);
     }
 }
