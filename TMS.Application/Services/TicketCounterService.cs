@@ -114,6 +114,9 @@ namespace TMS.Application.Services
             existingTicketCounter.LastModifiedAt = DateTime.UtcNow;
             existingTicketCounter.LastModifiedBy = "SystemUser";
 
+            existingTicketCounter.IsActive = true;
+            existingTicketCounter.OperatingHours = "7:00 AM - 11:00PM";
+
             _ticketCounterRepository.Update(existingTicketCounter);
             await _unitOfWork.CompleteAsync();
         }
