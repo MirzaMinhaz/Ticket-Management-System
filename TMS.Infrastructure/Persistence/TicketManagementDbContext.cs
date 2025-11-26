@@ -213,10 +213,16 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
-                entity.Property(e => e.SeatCode).IsRequired().HasMaxLength(20);
-                entity.HasIndex(e => e.SeatCode).IsUnique();
+                entity.Property(e => e.SeatCode)
+                .IsRequired()
+                .HasMaxLength(20);
 
-                entity.Property(e => e.SeatNumber).IsRequired().HasMaxLength(5);
+                entity.HasIndex(e => e.SeatCode)
+                .IsUnique();
+
+                entity.Property(e => e.SeatNumber)
+                .IsRequired()
+                .HasMaxLength(5);
 
                 // Foreign key to Schedule
                 entity.HasOne(s => s.Schedule)
@@ -227,12 +233,12 @@ namespace TMS.Infrastructure.Persistence
                 // Crucial: A seat number must be unique per schedule
                 entity.HasIndex(s => new { s.ScheduleId, s.SeatNumber }).IsUnique();
 
-                entity.HasMany(s => s.Tickets)
-                      .WithOne(t => t.BookedSeat)
-                      .HasForeignKey(t => t.SeatId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                //entity.HasMany(s => s.Tickets)
+                //      .WithOne(t => t.BookedSeat)
+                //      .HasForeignKey(t => t.SeatId)
+                //      .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(s => s.ScheduleId);
+                //entity.HasIndex(s => s.ScheduleId);
             });
 
             // --- Configure Ticket entity ---
@@ -259,10 +265,18 @@ namespace TMS.Infrastructure.Persistence
                       .HasForeignKey(t => t.ScheduleId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(t => t.BookedSeat)
-                      .WithMany(s => s.Tickets)
-                      .HasForeignKey(t => t.SeatId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                //entity.HasOne(t => t.BookedSeat)
+                //      .WithMany(s => s.Tickets)
+                //      .HasForeignKey(t => t.SeatId)
+                //      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(t => t.SeatCode)
+                      .IsRequired()
+                      .HasMaxLength(20);
+
+                entity.Property(t => t.SeatNumber)
+                      .IsRequired()
+                      .HasMaxLength(5);
 
                 // === Prevent Multiple Cascade Paths: Explicitly set DeleteBehavior.NoAction ===
                 entity.HasOne(t => t.BookingCounter)
@@ -292,7 +306,9 @@ namespace TMS.Infrastructure.Persistence
                 // Add indices for foreign keys and common query fields
                 entity.HasIndex(t => t.UserId);
                 entity.HasIndex(t => t.ScheduleId);
-                entity.HasIndex(t => t.SeatId);
+                //entity.HasIndex(t => t.SeatId);
+                entity.HasIndex(t => t.SeatCode);
+                entity.HasIndex(t => t.SeatNumber);
                 entity.HasIndex(t => t.BookingDateTime);
                 entity.HasIndex(t => t.Status);
             });

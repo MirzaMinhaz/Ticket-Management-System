@@ -3,7 +3,6 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TMS.Infrastructure.Persistence;
 
@@ -12,11 +11,9 @@ using TMS.Infrastructure.Persistence;
 namespace TMS.Infrastructure.Migrations
 {
     [DbContext(typeof(TicketManagementDbContext))]
-    [Migration("20251101074350_CreateTicketCounters")]
-    partial class CreateTicketCounters
+    partial class TicketManagementDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -365,8 +362,6 @@ namespace TMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ScheduleId");
-
                     b.HasIndex("SeatCode")
                         .IsUnique();
 
@@ -426,8 +421,15 @@ namespace TMS.Infrastructure.Migrations
                     b.Property<int>("ScheduleId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SeatId")
-                        .HasColumnType("int");
+                    b.Property<string>("SeatCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("SeatNumber")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -454,7 +456,9 @@ namespace TMS.Infrastructure.Migrations
 
                     b.HasIndex("ScheduleId");
 
-                    b.HasIndex("SeatId");
+                    b.HasIndex("SeatCode");
+
+                    b.HasIndex("SeatNumber");
 
                     b.HasIndex("Status");
 
@@ -745,12 +749,6 @@ namespace TMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TMS.Domain.Entities.Seat", "BookedSeat")
-                        .WithMany("Tickets")
-                        .HasForeignKey("SeatId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("TMS.Domain.Entities.User", "User")
                         .WithMany("Tickets")
                         .HasForeignKey("UserId")
@@ -758,8 +756,6 @@ namespace TMS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("ArrivalCounter");
-
-                    b.Navigation("BookedSeat");
 
                     b.Navigation("BookingCounter");
 
@@ -814,11 +810,6 @@ namespace TMS.Infrastructure.Migrations
                 {
                     b.Navigation("Seats");
 
-                    b.Navigation("Tickets");
-                });
-
-            modelBuilder.Entity("TMS.Domain.Entities.Seat", b =>
-                {
                     b.Navigation("Tickets");
                 });
 
