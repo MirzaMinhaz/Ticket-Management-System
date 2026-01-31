@@ -30,6 +30,7 @@ namespace TMS.Infrastructure
             services.AddScoped<IVehicleService, VehicleService>();
             services.AddScoped<IVehicleRepository, VehicleRepository>();
             services.AddScoped<IOperatorRepository, OperatorRepository>();
+            services.AddScoped<IRouteRepository, RouteRepository>();
 
             // Add other specific repositories as needed:
             // services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();

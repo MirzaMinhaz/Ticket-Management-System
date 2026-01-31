@@ -8,8 +8,8 @@ namespace TMS.Domain.Entities
     {
         // Primary key is 'Id' from BaseEntity<int>
 
-        public int DepartureLocationId { get; set; } // FK to Location (int)
-        public int DestinationLocationId { get; set; } // FK to Location (int)
+        public string DepartureLocationCode { get; set; } // FK to Location (int)
+        public string DestinationLocationCode { get; set; } // FK to Location (int)
         public string RouteName { get; set; }
         public decimal EstimatedDurationHours { get; set; }
         public string RouteCode { get; set; } // e.g., RTE-0001, RTE-0010

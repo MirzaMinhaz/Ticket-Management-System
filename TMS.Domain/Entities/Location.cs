@@ -11,6 +11,7 @@ namespace TMS.Domain.Entities
         public string Name { get; set; }
         public string Type { get; set; }
         public string Address { get; set; }
+
         public bool IsActive { get; set; }
 
         // Navigation properties for relationships

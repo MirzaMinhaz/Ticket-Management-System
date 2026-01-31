@@ -12,8 +12,8 @@ using TMS.Infrastructure.Persistence;
 namespace TMS.Infrastructure.Migrations
 {
     [DbContext(typeof(TicketManagementDbContext))]
-    [Migration("20251116083205_SeatCodeMigration")]
-    partial class SeatCodeMigration
+    [Migration("20251231140803_UpdateRouteLocationToCode")]
+    partial class UpdateRouteLocationToCode
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -221,11 +221,13 @@ namespace TMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DepartureLocationCode")
-                        .HasColumnType("int");
+                    b.Property<string>("DepartureLocationCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("DestinationLocationCode")
-                        .HasColumnType("int");
+                    b.Property<string>("DestinationLocationCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<decimal>("EstimatedDurationHours")
                         .HasColumnType("decimal(18,2)");
@@ -685,12 +687,14 @@ namespace TMS.Infrastructure.Migrations
                     b.HasOne("TMS.Domain.Entities.Location", "DepartureLocation")
                         .WithMany("DepartureRoutes")
                         .HasForeignKey("DepartureLocationCode")
+                        .HasPrincipalKey("LocationCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("TMS.Domain.Entities.Location", "DestinationLocation")
                         .WithMany("DestinationRoutes")
                         .HasForeignKey("DestinationLocationCode")
+                        .HasPrincipalKey("LocationCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

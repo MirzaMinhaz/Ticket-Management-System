@@ -20,6 +20,7 @@ namespace TMS.Application
             services.AddScoped<ITicketCounterService, TicketCounterService>();
             services.AddScoped<IVehicleService, VehicleService>();
             services.AddScoped<IOperatorService, OperatorService>();
+            services.AddScoped<IRouteService, RouteService>();
             return services;
         }
 

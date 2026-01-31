@@ -59,12 +59,12 @@ namespace TMS.Infrastructure.Persistence
                 // Navigation properties (Collections on Location)
                 entity.HasMany(l => l.DepartureRoutes)
                       .WithOne(r => r.DepartureLocation)
-                      .HasForeignKey(r => r.DepartureLocationId)
+                      .HasForeignKey(r => r.DepartureLocationCode)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(l => l.DestinationRoutes)
                       .WithOne(r => r.DestinationLocation)
-                      .HasForeignKey(r => r.DestinationLocationId)
+                      .HasForeignKey(r => r.DestinationLocationCode)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 // ✅ FIX: Explicitly configure the inverse relationship from Location to TicketCounter
@@ -149,12 +149,14 @@ namespace TMS.Infrastructure.Persistence
                 // Foreign keys to DepartureLocation and DestinationLocation
                 entity.HasOne(r => r.DepartureLocation)
                       .WithMany(l => l.DepartureRoutes)
-                      .HasForeignKey(r => r.DepartureLocationId)
+                      .HasForeignKey(r => r.DepartureLocationCode)
+                      .HasPrincipalKey(l => l.LocationCode)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.DestinationLocation)
                       .WithMany(l => l.DestinationRoutes)
-                      .HasForeignKey(r => r.DestinationLocationId)
+                      .HasForeignKey(r => r.DestinationLocationCode)
+                      .HasPrincipalKey(l => l.LocationCode)
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(r => r.Schedules)
@@ -163,9 +165,9 @@ namespace TMS.Infrastructure.Persistence
                       .OnDelete(DeleteBehavior.Restrict);
 
                 // Add indices for foreign keys and common query fields
-                entity.HasIndex(r => r.DepartureLocationId);
-                entity.HasIndex(r => r.DestinationLocationId);
-                entity.HasIndex(r => new { r.DepartureLocationId, r.DestinationLocationId, r.RouteName }).IsUnique();
+                entity.HasIndex(r => r.DepartureLocationCode);
+                entity.HasIndex(r => r.DestinationLocationCode);
+                entity.HasIndex(r => new { r.DepartureLocationCode, r.DestinationLocationCode, r.RouteName }).IsUnique();
             });
 
             // --- Configure Schedule entity ---

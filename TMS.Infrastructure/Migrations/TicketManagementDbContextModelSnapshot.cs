@@ -218,11 +218,13 @@ namespace TMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DepartureLocationId")
-                        .HasColumnType("int");
+                    b.Property<string>("DepartureLocationCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("DestinationLocationId")
-                        .HasColumnType("int");
+                    b.Property<string>("DestinationLocationCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<decimal>("EstimatedDurationHours")
                         .HasColumnType("decimal(18,2)");
@@ -246,14 +248,14 @@ namespace TMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DepartureLocationId");
+                    b.HasIndex("DepartureLocationCode");
 
-                    b.HasIndex("DestinationLocationId");
+                    b.HasIndex("DestinationLocationCode");
 
                     b.HasIndex("RouteCode")
                         .IsUnique();
 
-                    b.HasIndex("DepartureLocationId", "DestinationLocationId", "RouteName")
+                    b.HasIndex("DepartureLocationCode", "DestinationLocationCode", "RouteName")
                         .IsUnique();
 
                     b.ToTable("Routes");
@@ -681,13 +683,15 @@ namespace TMS.Infrastructure.Migrations
                 {
                     b.HasOne("TMS.Domain.Entities.Location", "DepartureLocation")
                         .WithMany("DepartureRoutes")
-                        .HasForeignKey("DepartureLocationId")
+                        .HasForeignKey("DepartureLocationCode")
+                        .HasPrincipalKey("LocationCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("TMS.Domain.Entities.Location", "DestinationLocation")
                         .WithMany("DestinationRoutes")
-                        .HasForeignKey("DestinationLocationId")
+                        .HasForeignKey("DestinationLocationCode")
+                        .HasPrincipalKey("LocationCode")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
