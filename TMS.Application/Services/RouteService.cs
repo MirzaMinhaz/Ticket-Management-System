@@ -46,30 +46,55 @@ namespace TMS.Application.Services
         {
             try
             {
-                var route = _mapper.Map<Route>(createDto);
+                var existingRoutes = await _routeRepository
+                    .GetRoutesByLocationAsync(createDto.DepartureLocationCode, createDto.DestinationLocationCode);
 
-                // Generate unique RouteCode if not provided
-                if (string.IsNullOrEmpty(route.RouteCode))
+                if (existingRoutes.Any())
                 {
-                    route.RouteCode = await GenerateUniqueRouteCode();
+                    throw new ApplicationException("A route with the same departure and destination already exists.");
                 }
 
-                route.CreatedAt = DateTime.UtcNow;
-                route.CreatedBy = "SystemUser";
-                route.LastModifiedAt = DateTime.UtcNow;
-                route.LastModifiedBy = "SystemUser";
+                var route = new Route
+                {
+                    DepartureLocationCode = createDto.DepartureLocationCode,
+                    DestinationLocationCode = createDto.DestinationLocationCode,
+                    RouteName = createDto.RouteName,
+                    EstimatedDurationHours = createDto.EstimatedDurationHours,
+                    RouteCode = await GenerateUniqueRouteCode(),
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = "SystemUser",
+                    LastModifiedAt = DateTime.UtcNow,
+                    LastModifiedBy = "SystemUser"
+                };
 
                 await _routeRepository.AddAsync(route);
                 await _unitOfWork.CompleteAsync();
 
-                return _mapper.Map<RouteDto>(route);
+                return new RouteDto
+                {
+                    Id = route.Id,
+                    DepartureLocationCode = route.DepartureLocationCode,
+                    DestinationLocationCode = route.DestinationLocationCode,
+                    RouteName = route.RouteName,
+                    EstimatedDurationHours = route.EstimatedDurationHours,
+                    RouteCode = route.RouteCode,
+                    CreatedAt = route.CreatedAt,
+                    CreatedBy = route.CreatedBy,
+                    LastModifiedAt = route.LastModifiedAt,
+                    LastModifiedBy = route.LastModifiedBy
+                };
+            }
+            catch (ApplicationException) // ✅ Let duplicate message bubble up
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"[CreateRouteAsync] Error: {ex.Message}");
-                throw new ApplicationException("Failed to create route.", ex);
+                throw new ApplicationException("Unexpected error occurred while creating route.", ex);
             }
         }
+
 
         public async Task UpdateRouteAsync(int id, UpdateRouteDto updateDto)
         {

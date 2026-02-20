@@ -13,8 +13,6 @@ namespace TMS.Application.DTOs.Route
         public string DestinationLocationCode { get; set; }
         public string RouteName { get; set; }
         public decimal EstimatedDurationHours { get; set; }
-        public string RouteCode { get; set; }
-        public string CreatedBy { get; set; } // Audit field
     }
 
     // For updating an existing Route
@@ -24,8 +22,6 @@ namespace TMS.Application.DTOs.Route
         public string DestinationLocationCode { get; set; }
         public string RouteName { get; set; }
         public decimal EstimatedDurationHours { get; set; }
-        public string RouteCode { get; set; }
-        public string LastModifiedBy { get; set; } // Audit field
     }
 
     // For reading/displaying Route details
