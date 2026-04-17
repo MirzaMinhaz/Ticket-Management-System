@@ -17,6 +17,10 @@ using TMS.Infrastructure.Persistence;
 using TMS.Infrastructure.Persistence;
 using TMS.Infrastructure.Persistence.Repositories;
 using TMS.Infrastructure.Persistence.Repositories;
+using System.Text; // for Encoding.UTF8
+using Microsoft.AspNetCore.Authentication.JwtBearer; // for JwtBearerDefaults
+using Microsoft.IdentityModel.Tokens; // for SymmetricSecurityKey, TokenValidationParameters
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +51,26 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 // Register IHttpContextAccessor. This is crucial for your DbContext to get the current user context.
 builder.Services.AddHttpContextAccessor(); // <--- ADD OR ENSURE THIS LINE IS PRESENT
 
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+
 // Configure CORS (Cross-Origin Resource Sharing)
 // This is essential for your Angular frontend to talk to your backend API
 builder.Services.AddCors(options =>
@@ -73,6 +97,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
 
 // Ensure UseAuthorization is after UseCors
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

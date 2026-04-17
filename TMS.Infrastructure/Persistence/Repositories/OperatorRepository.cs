@@ -28,6 +28,13 @@ namespace TMS.Infrastructure.Persistence.Repositories
             return await _context.Operators.FindAsync(id);
         }
 
+        public async Task<Operator?> GetByNameAsync(string name)
+        {
+            return await _context.Operators
+                .FirstOrDefaultAsync(o => o.Name == name);
+        }
+
+
         public async Task<Operator> AddAsync(Operator entity)
         {
             

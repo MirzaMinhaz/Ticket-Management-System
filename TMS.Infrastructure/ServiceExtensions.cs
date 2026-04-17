@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TMS.Application.Interfaces.Persistence;
+using TMS.Application.Interfaces.Repositories;
 using TMS.Application.Interfaces.Services;
 using TMS.Application.Services;
 using TMS.Infrastructure.Persistence;
 using TMS.Infrastructure.Persistence.Repositories;
+using TMS.Infrastructure.Repositories;
 
 namespace TMS.Infrastructure
 {
@@ -31,6 +33,10 @@ namespace TMS.Infrastructure
             services.AddScoped<IVehicleRepository, VehicleRepository>();
             services.AddScoped<IOperatorRepository, OperatorRepository>();
             services.AddScoped<IRouteRepository, RouteRepository>();
+            services.AddScoped<IScheduleRepository, ScheduleRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IAuthService, AuthService>();
+
 
             // Add other specific repositories as needed:
             // services.AddScoped<ITicketCounterRepository, TicketCounterRepository>();

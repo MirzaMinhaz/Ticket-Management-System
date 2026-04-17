@@ -21,6 +21,8 @@ namespace TMS.Application
             services.AddScoped<IVehicleService, VehicleService>();
             services.AddScoped<IOperatorService, OperatorService>();
             services.AddScoped<IRouteService, RouteService>();
+            services.AddScoped<IScheduleService, ScheduleService>();
+            services.AddScoped<IAuthService, AuthService>();
             return services;
         }
 

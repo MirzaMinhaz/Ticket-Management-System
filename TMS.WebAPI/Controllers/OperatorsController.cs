@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TMS.Application.DTOs.Operator;
 using TMS.Application.Interfaces.Services;
+using TMS.Application.Services;
 
 namespace TMS.API.Controllers
 {
@@ -30,12 +31,20 @@ namespace TMS.API.Controllers
             return Ok(result);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateOperatorDto dto)
+        [HttpPost("create")]
+        public async Task<ActionResult<OperatorDto>> Create([FromBody] CreateOperatorDto dto)
         {
-            var result = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            try
+            {
+                var created = await _service.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (ApplicationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateOperatorDto dto)

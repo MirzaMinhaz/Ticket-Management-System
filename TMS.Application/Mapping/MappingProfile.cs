@@ -1,6 +1,7 @@
-﻿// TMS.Application/Mapping/MappingProfile.cs
-using AutoMapper;
+﻿using AutoMapper;
 using TMS.Application.DTOs;
+using TMS.Application.DTOs.Route;
+using TMS.Application.DTOs.Schedule;
 using TMS.Domain.Entities;
 
 namespace TMS.Application.Mapping
@@ -10,20 +11,40 @@ namespace TMS.Application.Mapping
         public MappingProfile()
         {
             // Location Mappings
-            CreateMap<Location, LocationDto>().ReverseMap(); // LocationDto has locationId: string
+            CreateMap<Location, LocationDto>().ReverseMap();
             CreateMap<CreateLocationDto, Location>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id will be generated in service
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<UpdateLocationDto, Location>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id not updated by DTO
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             // TicketCounter Mappings
-            CreateMap<TicketCounter, TicketCounterDto>().ReverseMap(); // TicketCounterDto has ticketCounterId: string and locationId: string
+            CreateMap<TicketCounter, TicketCounterDto>().ReverseMap();
             CreateMap<CreateTicketCounterDto, TicketCounter>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Id will be generated in service
-                .ForMember(dest => dest.CounterCode, opt => opt.Ignore()); // CounterCode generated in service
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CounterCode, opt => opt.Ignore());
             CreateMap<UpdateTicketCounterDto, TicketCounter>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Id not updated by DTO
-                .ForMember(dest => dest.CounterCode, opt => opt.Ignore()); // CounterCode not updated by DTO
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CounterCode, opt => opt.Ignore());
+
+            // Route Mappings
+            CreateMap<Route, RouteDto>().ReverseMap();
+            CreateMap<CreateRouteDto, Route>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+            CreateMap<UpdateRouteDto, Route>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
+
+            // ✅ Schedule Mappings
+            CreateMap<Schedule, ScheduleDto>()
+                .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src => src.Route.RouteName))
+                .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.Vehicle.Model));
+
+            CreateMap<CreateScheduleDto, Schedule>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ScheduleCode, opt => opt.Ignore()); // generated in service
+
+            CreateMap<UpdateScheduleDto, Schedule>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.ScheduleCode, opt => opt.Ignore()); // not updated by DTO
         }
     }
 }

@@ -11,6 +11,7 @@ namespace TMS.Application.Interfaces.Persistence
     {
         Task<List<Operator>> GetAllAsync();
         Task<Operator> GetByIdAsync(int id);
+        Task<Operator?> GetByNameAsync(string name);
         Task<Operator> AddAsync(Operator entity);
         Task UpdateAsync(Operator entity);
         Task DeleteAsync(int id);

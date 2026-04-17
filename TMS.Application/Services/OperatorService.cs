@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -47,10 +48,21 @@ namespace TMS.Application.Services
             };
         }
 
+
+
         public async Task<OperatorDto> CreateAsync(CreateOperatorDto dto)
         {
             try
             {
+                //Check for duplicates
+                var existingOperator = await _repository.GetByNameAsync(dto.Name);
+
+                if (existingOperator != null)
+                {
+                    throw new ApplicationException("An operator with the same name already exists.");
+                }
+
+
                 var operatorCode = await GenerateOperatorCodeAsync();
 
                 var entity = new Operator
@@ -74,13 +86,52 @@ namespace TMS.Application.Services
                     CreatedAt = result.CreatedAt ?? DateTime.MinValue
                 };
             }
+            catch (ApplicationException) // ✅ bubble up duplicate validation
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                // You can log the error here using your preferred logging framework
                 Console.WriteLine($"Error in CreateAsync: {ex.Message}");
-                throw; // Optionally rethrow to let the caller handle it
+                throw new ApplicationException("Unexpected error occurred while creating operator.", ex);
             }
         }
+
+
+        //public async Task<OperatorDto> CreateAsync(CreateOperatorDto dto)
+        //{
+        //    try
+        //    {
+        //        var operatorCode = await GenerateOperatorCodeAsync();
+
+        //        var entity = new Operator
+        //        {
+        //            Name = dto.Name,
+        //            Type = dto.Type,
+        //            OperatorCode = operatorCode,
+        //            CreatedAt = DateTime.UtcNow,
+        //            CreatedBy = "System",
+        //            LastModifiedBy = "System"
+        //        };
+
+        //        var result = await _repository.AddAsync(entity);
+
+        //        return new OperatorDto
+        //        {
+        //            Id = result.Id,
+        //            Name = result.Name,
+        //            Type = result.Type,
+        //            OperatorCode = result.OperatorCode,
+        //            CreatedAt = result.CreatedAt ?? DateTime.MinValue
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // You can log the error here using your preferred logging framework
+        //        Console.WriteLine($"Error in CreateAsync: {ex.Message}");
+        //        throw; // Optionally rethrow to let the caller handle it
+        //    }
+        //}
 
 
 
