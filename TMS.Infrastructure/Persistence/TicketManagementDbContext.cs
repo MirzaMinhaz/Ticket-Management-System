@@ -23,6 +23,7 @@ namespace TMS.Infrastructure.Persistence
         public DbSet<TicketCounter> TicketCounters { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<Trip> Trips { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -197,16 +198,32 @@ namespace TMS.Infrastructure.Persistence
                       .HasForeignKey(seat => seat.ScheduleId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasMany(s => s.Tickets)
+                // --- CRITICAL CHANGE START ---
+                // Schedule সরাসরি Tickets-এর সাথে যুক্ত থাকবে না, এটি Trips-এর সাথে যুক্ত হবে
+                entity.HasMany(s => s.Trips)
                       .WithOne(t => t.Schedule)
                       .HasForeignKey(t => t.ScheduleId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Cascade);
+                // --- CRITICAL CHANGE END ---
 
                 // Add indices for foreign keys and common query fields
                 entity.HasIndex(s => s.RouteId);
                 entity.HasIndex(s => s.VehicleId);
                 entity.HasIndex(s => s.DepartureDateTime);
                 entity.HasIndex(s => s.ArrivalDateTime);
+            });
+
+            // আপনাকে Trip এবং Ticket এর রিলেশনটিও আলাদাভাবে ডিফাইন করে দিতে হবে নিচে:
+            modelBuilder.Entity<Trip>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).HasMaxLength(20);
+                entity.HasIndex(e => e.TripDate);
+
+                entity.HasMany(t => t.Tickets)
+                      .WithOne(ticket => ticket.Trip)
+                      .HasForeignKey(ticket => ticket.TripId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // --- Configure Seat entity ---
@@ -256,21 +273,19 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.PassengerContact).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Status).HasMaxLength(50);
 
-                // Foreign keys
+                // User এর সাথে রিলেশন
                 entity.HasOne(t => t.User)
                       .WithMany(u => u.Tickets)
                       .HasForeignKey(t => t.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(t => t.Schedule)
-                      .WithMany(s => s.Tickets)
-                      .HasForeignKey(t => t.ScheduleId)
+                // === নতুন পরিবর্তন: Schedule এর পরিবর্তে Trip ব্যবহার ===
+                entity.HasOne(t => t.Trip) // Navigation property 'Trip'
+                      .WithMany(tr => tr.Tickets) // Trip ক্লাসে ICollection<Ticket> থাকতে হবে
+                      .HasForeignKey(t => t.TripId) // Ticket ক্লাসে 'TripId' প্রোপার্টি থাকতে হবে
                       .OnDelete(DeleteBehavior.Restrict);
 
-                //entity.HasOne(t => t.BookedSeat)
-                //      .WithMany(s => s.Tickets)
-                //      .HasForeignKey(t => t.SeatId)
-                //      .OnDelete(DeleteBehavior.Restrict);
+                // ===================================================
 
                 entity.Property(t => t.SeatCode)
                       .IsRequired()
@@ -305,10 +320,9 @@ namespace TMS.Infrastructure.Persistence
                       .HasForeignKey(c => c.TicketId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Add indices for foreign keys and common query fields
+                // Index আপডেট
                 entity.HasIndex(t => t.UserId);
-                entity.HasIndex(t => t.ScheduleId);
-                //entity.HasIndex(t => t.SeatId);
+                entity.HasIndex(t => t.TripId); // ScheduleId ইনডেক্স পরিবর্তন করে TripId করা হয়েছে
                 entity.HasIndex(t => t.SeatCode);
                 entity.HasIndex(t => t.SeatNumber);
                 entity.HasIndex(t => t.BookingDateTime);

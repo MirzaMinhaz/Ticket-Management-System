@@ -19,9 +19,10 @@ namespace TMS.Infrastructure.Persistence.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<Location> GetLocationByCodeAsync(string code)
+        public async Task<Location?> GetByCodeAsync(string code)
         {
-            return await _dbSet.FirstOrDefaultAsync(l => l.LocationCode == code);
+            return await _dbContext.Locations
+                .FirstOrDefaultAsync(l => l.LocationCode == code);
         }
 
         public async Task DeleteAsync(int id) // CRITICAL: int ID

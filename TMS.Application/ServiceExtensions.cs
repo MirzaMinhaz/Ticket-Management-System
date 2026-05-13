@@ -4,6 +4,7 @@ using TMS.Application.Interfaces.Services; // Ensure this is correct for your ap
 using TMS.Application.Services; // Ensure this is correct for your app services concrete classes
 using AutoMapper;
 using System.Reflection;
+using TMS.Application.Interfaces;
 // REMOVE: using TMS.Infrastructure.Interfaces;
 // REMOVE: using TMS.Infrastructure.Repositories;
 
@@ -23,6 +24,8 @@ namespace TMS.Application
             services.AddScoped<IRouteService, RouteService>();
             services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ITicketService, TicketService>();
+            services.AddScoped<ITripService, TripService>();
             return services;
         }
 

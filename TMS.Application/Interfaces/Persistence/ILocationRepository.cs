@@ -9,7 +9,8 @@ namespace TMS.Application.Interfaces.Persistence
 {
     public interface ILocationRepository : IGenericRepository<Location, int> // CRITICAL: TId is int
     {
-        Task<Location> GetLocationByCodeAsync(string code);
+        //Task<Location> GetLocationByCodeAsync(string code);
+        Task<Location?> GetByCodeAsync(string code);
         Task DeleteAsync(int id); // CRITICAL: int ID
         Task UpdateLocationAsync(Location location);
         Task<IEnumerable<Location>> GetWhereAsync(Expression<Func<Location, bool>> predicate);

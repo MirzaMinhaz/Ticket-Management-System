@@ -2,6 +2,7 @@
 using TMS.Application.DTOs;
 using TMS.Application.DTOs.Route;
 using TMS.Application.DTOs.Schedule;
+using TMS.Application.DTOs.Ticket;
 using TMS.Domain.Entities;
 
 namespace TMS.Application.Mapping
@@ -45,6 +46,18 @@ namespace TMS.Application.Mapping
             CreateMap<UpdateScheduleDto, Schedule>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.ScheduleCode, opt => opt.Ignore()); // not updated by DTO
+
+            CreateMap<Ticket, TicketDto>().ReverseMap();
+            CreateMap<CreateTicketDto, Ticket>();
+            CreateMap<UpdateTicketDto, Ticket>();
+
+            // In MappingProfile.cs constructor, add these lines:
+            CreateMap<Trip, TripDto>();
+            CreateMap<CreateTripDto, Trip>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Schedule, opt => opt.Ignore());
+
+            //CreateMap<Schedule, ScheduleDto>().ReverseMap();
         }
     }
 }

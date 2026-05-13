@@ -1,15 +1,15 @@
-﻿// TMS.Application/Interfaces/Persistence/ITicketRepository.cs
+﻿// TMS.Application.Interfaces.Repositories/ITicketRepository.cs
 using TMS.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 
-namespace TMS.Application.Interfaces.Persistence
+namespace TMS.Application.Interfaces.Repositories
 {
-    public interface ITicketRepository : IGenericRepository<Ticket, int> // CRITICAL: TId is int
+    public interface ITicketRepository
     {
-        // Any specific methods for Ticket beyond generic ones
-        Task<Ticket> GetTicketByCodeAsync(string code);
+        Task<IEnumerable<Ticket>> GetAllAsync();
+        Task<Ticket?> GetByIdAsync(int id);
+        Task<IEnumerable<Ticket>> GetByTripIdAsync(int tripId);
+        Task AddAsync(Ticket ticket);
+        void Update(Ticket ticket);
+        Task DeleteAsync(Ticket ticket);
     }
 }

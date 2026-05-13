@@ -38,7 +38,7 @@ namespace TMS.Application.Services
 
         public async Task<LocationDto> GetLocationByCodeAsync(string code)
         {
-            var location = await _locationRepository.GetLocationByCodeAsync(code);
+            var location = await _locationRepository.GetByCodeAsync(code);
             return _mapper.Map<LocationDto>(location);
         }
 

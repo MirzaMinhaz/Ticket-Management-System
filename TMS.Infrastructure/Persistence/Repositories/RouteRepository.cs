@@ -11,25 +11,21 @@ namespace TMS.Infrastructure.Persistence.Repositories
 {
     public class RouteRepository : GenericRepository<Route, int>, IRouteRepository
     {
-        private readonly TicketManagementDbContext _dbContext;
-
-        public RouteRepository(TicketManagementDbContext dbContext) : base(dbContext)
+        public RouteRepository(TicketManagementDbContext context) : base(context)
         {
-            _dbContext = dbContext;
+        }
+
+        public async Task<Route?> GetByCodeAsync(string routeCode)
+        {
+            return await _dbSet.FirstOrDefaultAsync(r => r.RouteCode == routeCode);
         }
 
         public async Task<IEnumerable<Route>> GetRoutesByLocationAsync(string departureLocationCode, string destinationLocationCode)
         {
-            return await _dbContext.Routes
-                .Where(r => r.DepartureLocationCode == departureLocationCode
-                         && r.DestinationLocationCode == destinationLocationCode)
+            return await _dbSet
+                .Where(r => r.DepartureLocationCode == departureLocationCode &&
+                            r.DestinationLocationCode == destinationLocationCode)
                 .ToListAsync();
-        }
-
-        public async Task<Route> GetRouteByCodeAsync(string routeCode)
-        {
-            return await _dbContext.Routes
-                .FirstOrDefaultAsync(r => r.RouteCode == routeCode);
         }
     }
 }
