@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,28 +14,19 @@ namespace TMS.Application.Services
     public class VehicleService : IVehicleService
     {
         private readonly IVehicleRepository _vehicleRepository;
+        private readonly IMapper _mapper;
 
-        public VehicleService(IVehicleRepository vehicleRepository)
+        public VehicleService(IVehicleRepository vehicleRepository, IMapper mapper)
         {
             _vehicleRepository = vehicleRepository;
+            _mapper = mapper;
         }
+
 
         public async Task<IEnumerable<VehicleDto>> GetAllVehiclesAsync()
         {
             var vehicles = await _vehicleRepository.GetAllAsync();
-            return vehicles.Select(v => new VehicleDto
-            {
-                Id = v.Id,
-                OperatorCode = v.OperatorCode, // ✅ Safe: both sides nullable OperatorCode = vehicle.OperatorCode, // ✅ Updated
-                Type = v.Type,
-                Model = v.Model,
-                LicensePlate = v.LicensePlate,
-                Capacity = v.Capacity,
-                VehicleCode = v.VehicleCode,
-                CreatedAt = v.CreatedAt,
-                LastModifiedAt = v.LastModifiedAt ?? DateTime.UtcNow
-
-            }).ToList();
+            return _mapper.Map<IEnumerable<VehicleDto>>(vehicles);
         }
 
         public async Task<VehicleDto> GetVehicleByIdAsync(int id)
@@ -90,6 +82,9 @@ namespace TMS.Application.Services
                 Model = createDto.Model,
                 LicensePlate = createDto.LicensePlate,
                 Capacity = createDto.Capacity,
+                ACType = createDto.ACType,
+                BusCategory = createDto.BusCategory,
+                DeckLevel = createDto.DeckLevel,
                 VehicleCode = await GenerateVehicleCodeAsync(),
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow,
@@ -108,6 +103,9 @@ namespace TMS.Application.Services
                 LicensePlate = vehicle.LicensePlate,
                 Capacity = vehicle.Capacity,
                 VehicleCode = vehicle.VehicleCode,
+                ACType = vehicle.ACType,
+                BusCategory = vehicle.BusCategory,
+                DeckLevel = vehicle.DeckLevel,
                 CreatedAt = DateTime.UtcNow,
                 LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
             };

@@ -7,19 +7,21 @@ namespace TMS.Application.DTOs
     public class VehicleDto
     {
         public int Id { get; set; }
-
-        public string OperatorCode { get; set; } // ✅ Changed from OperatorId
-
+        public string OperatorCode { get; set; }
         public string Type { get; set; }
         public string Model { get; set; }
         public string LicensePlate { get; set; }
         public int Capacity { get; set; }
         public string VehicleCode { get; set; }
 
+        // --- Added New Columns ---
+        public string ACType { get; set; }      // AC / Non-AC
+        public string BusCategory { get; set; } // Sleeper / Seater
+        public string DeckLevel { get; set; }   // Single / Double
+
         public DateTime CreatedAt { get; set; }
         public DateTime LastModifiedAt { get; set; }
     }
-
 
     // DTO for creating a new Vehicle
     public class CreateVehicleDto
@@ -28,8 +30,8 @@ namespace TMS.Application.DTOs
         [StringLength(50, MinimumLength = 2)]
         public string Type { get; set; }
 
-        [Required] // ✅ Ensures operator is selected
-        public string OperatorCode { get; set; } // ✅ Added to link vehicle to operator
+        [Required]
+        public string OperatorCode { get; set; }
 
         [Required]
         [StringLength(100)]
@@ -42,13 +44,22 @@ namespace TMS.Application.DTOs
         [Required]
         [Range(1, 1000)]
         public int Capacity { get; set; }
-    }
 
+        // --- Added New Fields for Creation ---
+        [Required]
+        public string ACType { get; set; }      // Frontend থেকে dropdown এ আসবে
+
+        [Required]
+        public string BusCategory { get; set; }
+
+        [Required]
+        public string DeckLevel { get; set; }
+    }
 
     // DTO for updating an existing Vehicle
     public class UpdateVehicleDto
     {
-        public string OperatorCode { get; set; } // Optional
+        public string OperatorCode { get; set; }
 
         [Required]
         [StringLength(50, MinimumLength = 2)]
@@ -66,7 +77,11 @@ namespace TMS.Application.DTOs
         [Range(1, 1000)]
         public int Capacity { get; set; }
 
+        // --- Added New Fields for Update ---
+        public string ACType { get; set; }
+        public string BusCategory { get; set; }
+        public string DeckLevel { get; set; }
+
         public bool IsActive { get; set; }
     }
-
 }

@@ -371,6 +371,10 @@ namespace TMS.Infrastructure.Persistence
                 entity.Property(e => e.LicensePlate).IsRequired().HasMaxLength(20);
                 entity.HasIndex(e => e.LicensePlate).IsUnique();
 
+                entity.Property(e => e.ACType).HasMaxLength(50);
+                entity.Property(e => e.BusCategory).HasMaxLength(50);
+                entity.Property(e => e.DeckLevel).HasMaxLength(50);
+
                 entity.HasOne(v => v.Operator)
                       .WithMany(o => o.Vehicles)
                       .HasForeignKey(v => v.OperatorCode)

@@ -17,7 +17,20 @@ namespace TMS.Application.Mapping
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
             CreateMap<UpdateLocationDto, Location>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore());
+            // Vehicle Mappings 
+            CreateMap<Vehicle, VehicleDto>().ReverseMap();
 
+            CreateMap<CreateVehicleDto, Vehicle>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.VehicleCode, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.LastModifiedAt, opt => opt.Ignore());
+
+            CreateMap<UpdateVehicleDto, Vehicle>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.VehicleCode, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.LastModifiedAt, opt => opt.Ignore());
             // TicketCounter Mappings
             CreateMap<TicketCounter, TicketCounterDto>().ReverseMap();
             CreateMap<CreateTicketCounterDto, TicketCounter>()
