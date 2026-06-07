@@ -12,7 +12,7 @@ namespace TMS.Domain.Entities
         public int TripId { get; set; }
         public Trip Trip { get; set; }
 
-        public string SeatCode { get; set; }
+        public string? SeatCode { get; set; }
         public string SeatNumber { get; set; }
 
         public int BookingCounterId { get; set; }

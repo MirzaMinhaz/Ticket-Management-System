@@ -105,7 +105,10 @@ namespace TMS.Application.Services
                 ticket.PassengerName = dto.PassengerName;
                 ticket.PassengerContact = dto.PassengerContact;
                 ticket.SeatNumber = dto.SeatNumber;
-                ticket.SeatCode = dto.SeatCode;
+                //ticket.SeatCode = dto.SeatCode;
+                ticket.SeatCode = !string.IsNullOrEmpty(dto.SeatCode)
+    ? dto.SeatCode
+    : ticket.SeatCode;
                 ticket.FarePaid = dto.FarePaid;
                 ticket.BookingDateTime = dto.BookingDateTime;
                 ticket.BookingCounterId = dto.BookingCounterId;
