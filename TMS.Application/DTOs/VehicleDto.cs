@@ -24,6 +24,7 @@ namespace TMS.Application.DTOs
     }
 
     // DTO for creating a new Vehicle
+    // DTO for creating a new Vehicle
     public class CreateVehicleDto
     {
         [Required]
@@ -45,15 +46,10 @@ namespace TMS.Application.DTOs
         [Range(1, 1000)]
         public int Capacity { get; set; }
 
-        // --- Added New Fields for Creation ---
-        [Required]
-        public string ACType { get; set; }      // Frontend থেকে dropdown এ আসবে
-
-        [Required]
-        public string BusCategory { get; set; }
-
-        [Required]
-        public string DeckLevel { get; set; }
+        // Bus-only — null for Train
+        public string? ACType { get; set; }      // ← removed [Required], made nullable
+        public string? BusCategory { get; set; } // ← same
+        public string? DeckLevel { get; set; }   // ← same
     }
 
     // DTO for updating an existing Vehicle
@@ -78,9 +74,9 @@ namespace TMS.Application.DTOs
         public int Capacity { get; set; }
 
         // --- Added New Fields for Update ---
-        public string ACType { get; set; }
-        public string BusCategory { get; set; }
-        public string DeckLevel { get; set; }
+        public string? ACType { get; set; }
+        public string? BusCategory { get; set; }
+        public string? DeckLevel { get; set; }
 
         public bool IsActive { get; set; }
     }

@@ -126,6 +126,9 @@ namespace TMS.Application.Services
             vehicle.Model = updateDto.Model;
             vehicle.LicensePlate = updateDto.LicensePlate;
             vehicle.Capacity = updateDto.Capacity;
+            vehicle.ACType = updateDto.ACType;          // ← add
+            vehicle.BusCategory = updateDto.BusCategory; // ← add
+            vehicle.DeckLevel = updateDto.DeckLevel;     // ← add
             vehicle.LastModifiedAt = DateTime.UtcNow;
 
             await _vehicleRepository.UpdateAsync(vehicle);
