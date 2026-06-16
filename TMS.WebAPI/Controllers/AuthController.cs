@@ -24,11 +24,34 @@ namespace TMS.WebAPI.Controllers
             return Ok("This is protected data only for Admins");
         }
 
+        // Admin portal registration → Role: Admin
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequestDto request)
         {
-            var response = await _authService.RegisterAsync(request);
-            return Ok(response);
+            try
+            {
+                var response = await _authService.RegisterAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // Customer portal registration → Role: Customer
+        [HttpPost("register-customer")]
+        public async Task<IActionResult> RegisterCustomer(RegisterRequestDto request)
+        {
+            try
+            {
+                var response = await _authService.RegisterCustomerAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("login")]

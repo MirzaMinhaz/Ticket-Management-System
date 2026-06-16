@@ -24,27 +24,38 @@ namespace TMS.Application.Services
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
+            return await RegisterWithRole(request, "Admin");
+        }
+
+        public async Task<AuthResponseDto> RegisterCustomerAsync(RegisterRequestDto request)
+        {
+            return await RegisterWithRole(request, "Customer");
+        }
+
+        private async Task<AuthResponseDto> RegisterWithRole(RegisterRequestDto request, string role)
+        {
             try
             {
                 var existingUser = await _userRepository.GetByEmailAsync(request.Email);
                 if (existingUser != null)
-                    throw new ApplicationException("Email already exists");
+                    throw new ApplicationException("Email already exists.");
 
-                var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                var existingUsername = await _userRepository.GetByUsernameAsync(request.Username);
+                if (existingUsername != null)
+                    throw new ApplicationException("Username already taken.");
 
                 var user = new User
                 {
                     Username = request.Username,
                     Email = request.Email,
-                    PasswordHash = passwordHash,
-                    Role = "User",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    Role = role,
                     UserCode = Guid.NewGuid().ToString(),
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "System",
                     LastModifiedAt = DateTime.UtcNow,
                     LastModifiedBy = "System"
                 };
-
 
                 await _userRepository.AddAsync(user);
 
@@ -57,7 +68,6 @@ namespace TMS.Application.Services
             }
             catch (Exception ex)
             {
-                // log exception here if you have a logger
                 throw new ApplicationException($"Registration failed: {ex.Message}", ex);
             }
         }
