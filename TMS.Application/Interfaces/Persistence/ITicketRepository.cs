@@ -7,6 +7,7 @@ namespace TMS.Application.Interfaces.Repositories
     {
         Task<IEnumerable<Ticket>> GetAllAsync();
         Task<Ticket?> GetByIdAsync(int id);
+        Task<IEnumerable<Ticket>> GetByUserIdAsync(int userId);
         Task<IEnumerable<Ticket>> GetByTripIdAsync(int tripId);
         Task AddAsync(Ticket ticket);
         void Update(Ticket ticket);

@@ -8,5 +8,6 @@ namespace TMS.Application.Interfaces.Services
         Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request);
         Task<AuthResponseDto> RegisterCustomerAsync(RegisterRequestDto request);
         Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
+        Task<UserProfileResponseDto> GetProfileAsync(int userId);
     }
 }

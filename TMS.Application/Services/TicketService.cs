@@ -54,7 +54,61 @@ namespace TMS.Application.Services
             }
         }
 
-        public async Task<TicketDto> CreateTicketAsync(CreateTicketDto dto)
+        public async Task<IEnumerable<TicketDto>> GetTicketsByUserIdAsync(int userId)
+        {
+            try
+            {
+                var tickets = await _ticketRepository.GetByUserIdAsync(userId);
+                return _mapper.Map<IEnumerable<TicketDto>>(tickets);
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException($"Failed to fetch tickets for user {userId}.", ex);
+            }
+        }
+
+        //public async Task<TicketDto> CreateTicketAsync(CreateTicketDto dto)
+        //{
+        //    try
+        //    {
+        //        if (dto.TripId <= 0)
+        //            throw new ArgumentException("A valid TripId is required to create a ticket.");
+
+        //        string ticketCode = await GenerateUniqueCode("TKT-", t => t.TicketCode);
+        //        string seatCode = await GenerateUniqueCode("SEA-", t => t.SeatCode);
+
+        //        var ticket = new Ticket
+        //        {
+        //            TripId = dto.TripId,
+        //            PassengerName = dto.PassengerName,
+        //            PassengerContact = dto.PassengerContact,
+        //            SeatNumber = dto.SeatNumber,
+        //            SeatCode = dto.SeatCode ?? seatCode,
+        //            FarePaid = dto.FarePaid,
+        //            BookingDateTime = dto.BookingDateTime,
+        //            BookingCounterId = dto.BookingCounterId,
+        //            DepartureCounterId = dto.DepartureCounterId,
+        //            ArrivalCounterId = dto.ArrivalCounterId,
+        //            TicketCode = ticketCode,
+        //            Status = "Booked",
+        //            CreatedAt = DateTime.UtcNow,
+        //            CreatedBy = "System",
+        //            LastModifiedAt = DateTime.UtcNow,
+        //            LastModifiedBy = "System"
+        //        };
+
+        //        await _ticketRepository.AddAsync(ticket);
+        //        await _unitOfWork.CompleteAsync();
+        //        return _mapper.Map<TicketDto>(ticket);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new ApplicationException("Failed to create ticket.", ex);
+        //    }
+        //}
+
+
+        public async Task<TicketDto> CreateTicketAsync(CreateTicketDto dto, int? userId)
         {
             try
             {
@@ -66,6 +120,7 @@ namespace TMS.Application.Services
 
                 var ticket = new Ticket
                 {
+                    UserId = userId ?? 0,   // ← THE FIX: 0 = no logged-in customer (e.g. counter staff booking on behalf of a walk-in)
                     TripId = dto.TripId,
                     PassengerName = dto.PassengerName,
                     PassengerContact = dto.PassengerContact,

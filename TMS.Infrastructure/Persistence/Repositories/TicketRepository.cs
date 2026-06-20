@@ -43,5 +43,21 @@ namespace TMS.Infrastructure.Persistence.Repositories
                 throw;
             }
         }
+
+        public async Task<IEnumerable<Ticket>> GetByUserIdAsync(int userId)
+        {
+            try
+            {
+                return await _dbSet
+                    .Where(t => t.UserId == userId)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[GetByUserIdAsync] Error: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

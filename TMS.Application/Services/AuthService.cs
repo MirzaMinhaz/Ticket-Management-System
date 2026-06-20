@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -144,6 +145,25 @@ namespace TMS.Application.Services
             {
                 throw new ApplicationException($"Token generation failed: {ex.Message}", ex);
             }
+        }
+
+
+        public async Task<UserProfileResponseDto> GetProfileAsync(int userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (user == null)
+                throw new NotFoundException("User not found");
+
+            return new UserProfileResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                Role = user.Role,
+                UserCode = user.UserCode,
+                CreatedAt = user.CreatedAt
+            };
         }
     }
 }

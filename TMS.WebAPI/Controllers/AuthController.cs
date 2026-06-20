@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TMS.Application.DTOs;
 using TMS.Application.Exceptions;
 using TMS.Application.Interfaces.Services;
+using System.Security.Claims;
 
 namespace TMS.WebAPI.Controllers
 {
@@ -69,6 +70,26 @@ namespace TMS.WebAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest("Login failed"); // generic fallback
+            }
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMe()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized("Invalid token");
+
+            try
+            {
+                var profile = await _authService.GetProfileAsync(userId);
+                return Ok(profile);
+            }
+            catch (NotFoundException)
+            {
+                return NotFound("User not found");
             }
         }
 
