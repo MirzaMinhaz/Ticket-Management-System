@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging; // ILogger এর জন্য এটি প্রয়োজন
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,135 +16,135 @@ namespace TMS.Application.Services
     {
         private readonly IVehicleRepository _vehicleRepository;
         private readonly IMapper _mapper;
+        private readonly ILogger<VehicleService> _logger;
 
-        public VehicleService(IVehicleRepository vehicleRepository, IMapper mapper)
+        public VehicleService(IVehicleRepository vehicleRepository, IMapper mapper, ILogger<VehicleService> logger)
         {
             _vehicleRepository = vehicleRepository;
             _mapper = mapper;
+            _logger = logger;
         }
-
 
         public async Task<IEnumerable<VehicleDto>> GetAllVehiclesAsync()
         {
-            var vehicles = await _vehicleRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<VehicleDto>>(vehicles);
+            try
+            {
+                var vehicles = await _vehicleRepository.GetAllAsync();
+                return _mapper.Map<IEnumerable<VehicleDto>>(vehicles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching all vehicles.");
+                throw;
+            }
         }
 
         public async Task<VehicleDto> GetVehicleByIdAsync(int id)
         {
-            var vehicle = await _vehicleRepository.GetByIdAsync(id);
-            if (vehicle == null)
+            try
             {
-                throw new NotFoundException($"Vehicle with ID {id} not found.");
-            }
+                var vehicle = await _vehicleRepository.GetByIdAsync(id);
+                if (vehicle == null)
+                    throw new NotFoundException($"Vehicle with ID {id} not found.");
 
-            return new VehicleDto
+                return _mapper.Map<VehicleDto>(vehicle);
+            }
+            catch (NotFoundException) { throw; }
+            catch (Exception ex)
             {
-                Id = vehicle.Id,
-                OperatorCode = vehicle.OperatorCode, // ✅ Updated,
-                Type = vehicle.Type,
-                Model = vehicle.Model,
-                LicensePlate = vehicle.LicensePlate,
-                Capacity = vehicle.Capacity,
-                VehicleCode = vehicle.VehicleCode,
-                CreatedAt = vehicle.CreatedAt,
-                LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
-            };
+                _logger.LogError(ex, "Error fetching vehicle with ID {Id}", id);
+                throw;
+            }
         }
 
         public async Task<VehicleDto> GetVehicleByCodeAsync(string vehicleCode)
         {
-            var vehicle = await _vehicleRepository.GetByCodeAsync(vehicleCode);
-            if (vehicle == null)
+            try
             {
-                throw new NotFoundException($"Vehicle with code {vehicleCode} not found.");
-            }
+                var vehicle = await _vehicleRepository.GetByCodeAsync(vehicleCode);
+                if (vehicle == null)
+                    throw new NotFoundException($"Vehicle with code {vehicleCode} not found.");
 
-            return new VehicleDto
+                return _mapper.Map<VehicleDto>(vehicle);
+            }
+            catch (NotFoundException) { throw; }
+            catch (Exception ex)
             {
-                Id = vehicle.Id,
-                OperatorCode = vehicle.OperatorCode,
-                Type = vehicle.Type,
-                Model = vehicle.Model,
-                LicensePlate = vehicle.LicensePlate,
-                Capacity = vehicle.Capacity,
-                VehicleCode = vehicle.VehicleCode,
-                CreatedAt = vehicle.CreatedAt,
-                LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
-            };
+                _logger.LogError(ex, "Error fetching vehicle with code {Code}", vehicleCode);
+                throw;
+            }
         }
 
         public async Task<VehicleDto> CreateVehicleAsync(CreateVehicleDto createDto)
         {
-            var vehicle = new Vehicle
+            try
             {
-                OperatorCode = createDto.OperatorCode, // ✅ explicitly null
-                Type = createDto.Type,
-                Model = createDto.Model,
-                LicensePlate = createDto.LicensePlate,
-                Capacity = createDto.Capacity,
-                ACType = createDto.ACType,
-                BusCategory = createDto.BusCategory,
-                DeckLevel = createDto.DeckLevel,
-                VehicleCode = await GenerateVehicleCodeAsync(),
-                CreatedBy = "system",
-                CreatedAt = DateTime.UtcNow,
-                LastModifiedBy = "system",
-                LastModifiedAt = DateTime.UtcNow
-            };
+                var vehicle = new Vehicle
+                {
+                    OperatorCode = createDto.OperatorCode,
+                    Type = createDto.Type,
+                    Model = createDto.Model,
+                    LicensePlate = createDto.LicensePlate,
+                    Capacity = createDto.Capacity,
+                    ACType = createDto.ACType,
+                    BusCategory = createDto.BusCategory,
+                    DeckLevel = createDto.DeckLevel,
+                    VehicleCode = await GenerateVehicleCodeAsync(),
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    LastModifiedBy = "system",
+                    LastModifiedAt = DateTime.UtcNow
+                };
 
-            await _vehicleRepository.AddAsync(vehicle);
-
-            return new VehicleDto
+                await _vehicleRepository.AddAsync(vehicle);
+                return _mapper.Map<VehicleDto>(vehicle);
+            }
+            catch (Exception ex)
             {
-                Id = vehicle.Id,
-                OperatorCode = vehicle.OperatorCode,
-                Type = vehicle.Type,
-                Model = vehicle.Model,
-                LicensePlate = vehicle.LicensePlate,
-                Capacity = vehicle.Capacity,
-                VehicleCode = vehicle.VehicleCode,
-                ACType = vehicle.ACType,
-                BusCategory = vehicle.BusCategory,
-                DeckLevel = vehicle.DeckLevel,
-                CreatedAt = DateTime.UtcNow,
-                LastModifiedAt = vehicle.LastModifiedAt ?? DateTime.UtcNow
-            };
+                _logger.LogError(ex, "Error creating a new vehicle.");
+                throw;
+            }
         }
 
         public async Task UpdateVehicleAsync(int id, UpdateVehicleDto updateDto)
         {
-            if (updateDto == null)
-                throw new ArgumentNullException(nameof(updateDto), "Update data cannot be null.");
+            try
+            {
+                if (updateDto == null)
+                    throw new ArgumentNullException(nameof(updateDto));
 
-            var vehicle = await _vehicleRepository.GetByIdAsync(id);
-            if (vehicle == null)
-                throw new NotFoundException($"Vehicle with ID {id} not found.");
+                var vehicle = await _vehicleRepository.GetByIdAsync(id);
+                if (vehicle == null)
+                    throw new NotFoundException($"Vehicle with ID {id} not found.");
 
-            // Update fields
-            vehicle.OperatorCode = updateDto.OperatorCode; // Can be null
-            vehicle.Type = updateDto.Type;
-            vehicle.Model = updateDto.Model;
-            vehicle.LicensePlate = updateDto.LicensePlate;
-            vehicle.Capacity = updateDto.Capacity;
-            vehicle.ACType = updateDto.ACType;          // ← add
-            vehicle.BusCategory = updateDto.BusCategory; // ← add
-            vehicle.DeckLevel = updateDto.DeckLevel;     // ← add
-            vehicle.LastModifiedAt = DateTime.UtcNow;
+                // Map updates
+                _mapper.Map(updateDto, vehicle);
+                vehicle.LastModifiedAt = DateTime.UtcNow;
 
-            await _vehicleRepository.UpdateAsync(vehicle);
+                await _vehicleRepository.UpdateAsync(vehicle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating vehicle with ID {Id}", id);
+                throw;
+            }
         }
-
 
         public async Task DeleteVehicleAsync(int id)
         {
-            var vehicle = await _vehicleRepository.GetByIdAsync(id);
-            if (vehicle == null)
+            try
             {
-                throw new NotFoundException($"Vehicle with ID {id} not found.");
-            }
+                var vehicle = await _vehicleRepository.GetByIdAsync(id);
+                if (vehicle == null)
+                    throw new NotFoundException($"Vehicle with ID {id} not found.");
 
-            await _vehicleRepository.DeleteAsync(id);
+                await _vehicleRepository.DeleteAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting vehicle with ID {Id}", id);
+                throw;
+            }
         }
 
         private async Task<string> GenerateVehicleCodeAsync()

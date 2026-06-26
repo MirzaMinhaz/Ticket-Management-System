@@ -63,13 +63,27 @@ namespace TMS.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var schedule = await _context.Schedules.FindAsync(id);
-            if (schedule != null)
+            try
             {
+                var schedule = await _context.Schedules.FindAsync(id);
+                if (schedule == null)
+                {
+                    // আইডি পাওয়া না গেলে false রিটার্ন করুন বা NotFoundException ছুঁড়ুন
+                    return false;
+                }
+
                 _context.Schedules.Remove(schedule);
                 await _context.SaveChangesAsync();
+
+                return true; // সফলভাবে ডিলিট হয়েছে
+            }
+            catch (DbUpdateException ex)
+            {
+                // লগিং ফ্রেমওয়ার্ক ব্যবহার করা ভালো (যেমন: ILogger)
+                Console.Error.WriteLine($"[DeleteAsync] Database update error: {ex.Message}");
+                throw new ApplicationException("Failed to delete the schedule from the database.", ex);
             }
         }
     }

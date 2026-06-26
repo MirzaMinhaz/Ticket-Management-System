@@ -11,6 +11,6 @@ namespace TMS.Application.Interfaces.Repositories
         Task<IEnumerable<Schedule>> GetAllAsync();
         Task AddAsync(Schedule schedule);
         Task UpdateAsync(Schedule schedule);
-        Task DeleteAsync(int id);
+        Task<bool> DeleteAsync(int id);
     }
 }
