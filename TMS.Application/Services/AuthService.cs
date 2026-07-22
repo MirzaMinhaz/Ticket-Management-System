@@ -35,118 +35,79 @@ namespace TMS.Application.Services
 
         private async Task<AuthResponseDto> RegisterWithRole(RegisterRequestDto request, string role)
         {
-            try
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+            if (existingUser != null)
+                throw new ApplicationException("Email already exists.");
+
+            var existingUsername = await _userRepository.GetByUsernameAsync(request.Username);
+            if (existingUsername != null)
+                throw new ApplicationException("Username already taken.");
+
+            var user = new User
             {
-                var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-                if (existingUser != null)
-                    throw new ApplicationException("Email already exists.");
+                Username = request.Username,
+                Email = request.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                Role = role,
+                UserCode = Guid.NewGuid().ToString(),
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System",
+                LastModifiedAt = DateTime.UtcNow,
+                LastModifiedBy = "System"
+            };
 
-                var existingUsername = await _userRepository.GetByUsernameAsync(request.Username);
-                if (existingUsername != null)
-                    throw new ApplicationException("Username already taken.");
+            await _userRepository.AddAsync(user);
 
-                var user = new User
-                {
-                    Username = request.Username,
-                    Email = request.Email,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                    Role = role,
-                    UserCode = Guid.NewGuid().ToString(),
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = "System",
-                    LastModifiedAt = DateTime.UtcNow,
-                    LastModifiedBy = "System"
-                };
-
-                await _userRepository.AddAsync(user);
-
-                return new AuthResponseDto
-                {
-                    UserId = user.Id,
-                    Username = user.Username,
-                    Token = GenerateJwtToken(user)
-                };
-            }
-            catch (Exception ex)
+            return new AuthResponseDto
             {
-                throw new ApplicationException($"Registration failed: {ex.Message}", ex);
-            }
+                UserId = user.Id,
+                Username = user.Username,
+                Token = GenerateJwtToken(user)
+            };
         }
-
-        //public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
-        //{
-        //    try
-        //    {
-        //        var user = await _userRepository.GetByEmailAsync(request.Email);
-        //        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-        //            throw new UnauthorizedException("Invalid credentials");
-
-        //        return new AuthResponseDto
-        //        {
-        //            UserId = user.Id,
-        //            Username = user.Username,
-        //            Token = GenerateJwtToken(user)
-        //        };
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // log exception here if you have a logger
-        //        throw new ApplicationException($"Login failed: {ex.Message}", ex);
-        //    }
-        //}
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
-            try
-            {
-                var user = await _userRepository.GetByUsernameAsync(request.Username);
-                if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                    throw new UnauthorizedException("Invalid credentials");
+            var user = await _userRepository.GetByUsernameAsync(request.Username);
 
-                return new AuthResponseDto
-                {
-                    UserId = user.Id,
-                    Username = user.Username,
-                    Token = GenerateJwtToken(user)
-                };
-            }
-            catch (Exception ex)
+            // Credentials ভুল হলে সরাসরি UnauthorizedException থ্রো হবে (কোনো catch ব্লক দ্বারা Wrapped হবে না)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                throw new ApplicationException($"Login failed: {ex.Message}", ex);
+                throw new UnauthorizedException("Invalid credentials");
             }
+
+            return new AuthResponseDto
+            {
+                UserId = user.Id,
+                Username = user.Username,
+                Token = GenerateJwtToken(user)
+            };
         }
-
-
 
         private string GenerateJwtToken(User user)
         {
-            try
+            var claims = new[]
             {
-                var claims = new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                    new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                    new Claim(ClaimTypes.Role, user.Role)
-                };
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var jwtKey = _config["Jwt:Key"]
+                ?? throw new InvalidOperationException("JWT Secret Key is not configured in appsettings.");
 
-                var token = new JwtSecurityToken(
-                    issuer: _config["Jwt:Issuer"],
-                    audience: _config["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.UtcNow.AddHours(2),
-                    signingCredentials: creds);
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                return new JwtSecurityTokenHandler().WriteToken(token);
-            }
-            catch (Exception ex)
-            {
-                throw new ApplicationException($"Token generation failed: {ex.Message}", ex);
-            }
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(2),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
 
         public async Task<UserProfileResponseDto> GetProfileAsync(int userId)
         {
