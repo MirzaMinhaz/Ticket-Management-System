@@ -96,13 +96,13 @@ namespace TMS.WebAPI.Controllers
             }
             catch (UnauthorizedException)
             {
-                // ✅ AuthService থেকে সরাসরি ফায়ার হওয়া কাস্টম এক্সেপশন ধরবে
+                // Catches custom exception thrown directly from AuthService
                 _logger.LogWarning("Invalid login credentials provided for Username: {Username}", request.Username);
                 return Unauthorized("Invalid credentials");
             }
             catch (Exception ex)
             {
-                // 🚨 শুধু সত্যিকারের সিস্টেম বা ডাটাবেজ ক্র্যাশ এখানে আসবে
+                // Catches unhandled internal server or database errors
                 _logger.LogError(ex, "Unexpected system crash during login attempt for Username: {Username}", request.Username);
                 return StatusCode(500, "Login failed due to a system error");
             }
