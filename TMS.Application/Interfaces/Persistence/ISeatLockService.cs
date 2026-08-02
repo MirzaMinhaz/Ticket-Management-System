@@ -53,5 +53,7 @@ namespace TMS.Application.Interfaces
         /// the one provided (so a user can re-lock their own seat after reconnect).
         /// </summary>
         bool IsLockedByOther(int tripId, string seatNumber, string connectionId);
+
+        void ConfirmBooked(int tripId, IEnumerable<string> seatNumbers, string connectionId);
     }
 }

@@ -124,5 +124,22 @@ namespace TMS.Application.Services
                        !existing.IsExpired;
             }
         }
+
+        /// <summary>
+        /// Remove the temporary locks for seats that were just permanently booked.
+        /// Removes regardless of who technically holds the lock — by the time save()
+        /// succeeds client-side, the booking agent's own connection should hold
+        /// these locks anyway (they were set via LockSeat while selecting seats).
+        /// </summary>
+        public void ConfirmBooked(int tripId, IEnumerable<string> seatNumbers, string connectionId)
+        {
+            lock (_sync)
+            {
+                foreach (var seatNumber in seatNumbers)
+                {
+                    _locks.Remove((tripId, seatNumber));
+                }
+            }
+        }
     }
 }

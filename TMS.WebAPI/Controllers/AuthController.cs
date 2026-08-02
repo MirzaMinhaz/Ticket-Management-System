@@ -31,11 +31,15 @@ namespace TMS.WebAPI.Controllers
             return Ok("This is protected data only for Admins");
         }
 
-        // Admin portal registration → Role: Admin
+        // Bootstrap-only: creates an Admin account with NO auth check.
+        // This is intentionally dangerous — anyone who can reach this endpoint
+        // gets a full Admin account. Use it once to create your first Admin,
+        // then remove this action (or comment it out / gate it behind a
+        // config flag like "AllowBootstrapAdminRegistration") before going live.
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequestDto request)
         {
-            _logger.LogInformation("Attempting Admin registration for Email: {Email}", request.Email);
+            _logger.LogInformation("Attempting Admin (bootstrap) registration for Email: {Email}", request.Email);
 
             try
             {
@@ -45,19 +49,17 @@ namespace TMS.WebAPI.Controllers
             }
             catch (ApplicationException ex)
             {
-                // Email or Username duplicate error
                 _logger.LogWarning("Admin registration failed for Email: {Email}. Reason: {ErrorMessage}", request.Email, ex.Message);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                // Unexpected system error
                 _logger.LogError(ex, "Unexpected error during Admin registration for Email: {Email}", request.Email);
                 return StatusCode(500, "Registration failed due to an internal error");
             }
         }
 
-        // Customer portal registration → Role: Customer
+        // Customer portal registration → Role: Customer. Public/self-serve, unchanged.
         [HttpPost("register-customer")]
         public async Task<IActionResult> RegisterCustomer(RegisterRequestDto request)
         {
@@ -71,14 +73,41 @@ namespace TMS.WebAPI.Controllers
             }
             catch (ApplicationException ex)
             {
-                // Email or Username duplicate error
                 _logger.LogWarning("Customer registration failed for Email: {Email}. Reason: {ErrorMessage}", request.Email, ex.Message);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                // Unexpected system error
                 _logger.LogError(ex, "Unexpected error during Customer registration for Email: {Email}", request.Email);
+                return StatusCode(500, "Registration failed due to an internal error");
+            }
+        }
+
+        // Staff registration (Manager / Station / Counter) → only an existing
+        // Admin can create these accounts, and Role is validated server-side.
+        [Authorize(Roles = "Admin")]
+        [HttpPost("register-staff")]
+        public async Task<IActionResult> RegisterStaff(RegisterStaffRequestDto request)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation(
+                "Admin {AdminId} attempting to register staff account for Email: {Email} with Role: {Role}",
+                adminId, request.Email, request.Role);
+
+            try
+            {
+                var response = await _authService.RegisterStaffAsync(request);
+                _logger.LogInformation("Staff account registered successfully for Email: {Email} with Role: {Role}", request.Email, request.Role);
+                return Ok(response);
+            }
+            catch (ApplicationException ex)
+            {
+                _logger.LogWarning("Staff registration failed for Email: {Email}. Reason: {ErrorMessage}", request.Email, ex.Message);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during staff registration for Email: {Email}", request.Email);
                 return StatusCode(500, "Registration failed due to an internal error");
             }
         }
@@ -96,13 +125,11 @@ namespace TMS.WebAPI.Controllers
             }
             catch (UnauthorizedException)
             {
-                // Catches custom exception thrown directly from AuthService
                 _logger.LogWarning("Invalid login credentials provided for Username: {Username}", request.Username);
                 return Unauthorized("Invalid credentials");
             }
             catch (Exception ex)
             {
-                // Catches unhandled internal server or database errors
                 _logger.LogError(ex, "Unexpected system crash during login attempt for Username: {Username}", request.Username);
                 return StatusCode(500, "Login failed due to a system error");
             }

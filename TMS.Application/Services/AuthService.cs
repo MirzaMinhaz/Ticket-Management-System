@@ -8,6 +8,7 @@ using TMS.Application.DTOs;
 using TMS.Application.Exceptions;
 using TMS.Application.Interfaces.Persistence;
 using TMS.Application.Interfaces.Services;
+using TMS.Domain.Constants;
 using TMS.Domain.Entities;
 
 namespace TMS.Application.Services
@@ -23,14 +24,37 @@ namespace TMS.Application.Services
             _config = config;
         }
 
+        // NOTE: kept only for initial system bootstrap (creating the very first
+        // Admin account before any Admin exists to use RegisterStaffAsync).
+        // The controller endpoint for this should be removed or heavily
+        // restricted (e.g. only enabled via a one-time setup flag) once your
+        // first real Admin account exists — see AuthController.
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            return await RegisterWithRole(request, "Admin");
+            return await RegisterWithRole(request, Roles.Admin);
         }
 
         public async Task<AuthResponseDto> RegisterCustomerAsync(RegisterRequestDto request)
         {
-            return await RegisterWithRole(request, "Customer");
+            return await RegisterWithRole(request, Roles.Customer);
+        }
+
+        public async Task<AuthResponseDto> RegisterStaffAsync(RegisterStaffRequestDto request)
+        {
+            if (!Roles.IsValidStaffRole(request.Role))
+            {
+                throw new ApplicationException(
+                    $"Invalid role '{request.Role}'. Must be one of: {string.Join(", ", Roles.AssignableStaffRoles)}");
+            }
+
+            var registerRequest = new RegisterRequestDto
+            {
+                Username = request.Username,
+                Email = request.Email,
+                Password = request.Password
+            };
+
+            return await RegisterWithRole(registerRequest, request.Role);
         }
 
         private async Task<AuthResponseDto> RegisterWithRole(RegisterRequestDto request, string role)

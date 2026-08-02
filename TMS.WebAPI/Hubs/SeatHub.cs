@@ -13,12 +13,14 @@ namespace TMS.API.Hubs
     ///   LockSeat(tripId, seatNumber)        – try to lock a seat
     ///   ReleaseSeat(tripId, seatNumber)     – release a seat lock
     ///   GetLockedSeats(tripId)              – get current locked seats snapshot
+    ///   ConfirmBooking(tripId, seatNumbers) – a ticket was just saved for these seats
     ///
     /// Server → Client events (listened via HubConnection.On):
     ///   SeatLocked(tripId, seatNumber, connectionId)     – a seat was just locked
     ///   SeatReleased(tripId, seatNumber)                 – a seat was just released
     ///   LockedSeatsSnapshot(tripId, lockedSeats[])       – full snapshot on join
     ///   LockFailed(tripId, seatNumber, reason)           – lock attempt failed
+    ///   SeatsBooked(tripId, seatNumbers[])                – seats are now permanently booked
     /// </summary>
     public class SeatHub : Hub
     {
@@ -121,6 +123,32 @@ namespace TMS.API.Hubs
                 .ToList();
 
             await Clients.Caller.SendAsync("LockedSeatsSnapshot", tripId, locked);
+        }
+
+        /// <summary>
+        /// Called by a client the instant a ticket save/update succeeds for the
+        /// given seats. This is the critical piece that closes the double-booking
+        /// window: it removes the temporary locks (the seats no longer need one —
+        /// they're now permanently reserved in the ticket/booking table) and
+        /// broadcasts to every client on this trip that the seats are booked, so
+        /// their UI flips to "Taken" immediately — no page refresh required.
+        ///
+        /// Without this, a save only ever triggers ReleaseSeat on cleanup, which
+        /// broadcasts SeatReleased and makes the seat look free to everyone else
+        /// until they happen to refetch booked seats from the database.
+        /// </summary>
+        public async Task ConfirmBooking(int tripId, List<string> seatNumbers)
+        {
+            if (seatNumbers == null || seatNumbers.Count == 0) return;
+
+            _lockService.ConfirmBooked(tripId, seatNumbers, Context.ConnectionId);
+
+            await Clients.Group($"trip-{tripId}")
+                .SendAsync("SeatsBooked", tripId, seatNumbers);
+
+            _logger.LogInformation(
+                "Seats {Seats} on trip {Trip} confirmed booked by {Conn}.",
+                string.Join(",", seatNumbers), tripId, Context.ConnectionId);
         }
     }
 }
