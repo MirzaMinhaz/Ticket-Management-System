@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using TMS.Application.DTOs.Operator;
 using TMS.Application.Interfaces.Services;
-using TMS.Application.Services;
 
 namespace TMS.API.Controllers
 {
@@ -11,24 +11,42 @@ namespace TMS.API.Controllers
     public class OperatorsController : ControllerBase
     {
         private readonly IOperatorService _service;
+        private readonly ILogger<OperatorsController> _logger;
 
-        public OperatorsController(IOperatorService service)
+        public OperatorsController(IOperatorService service, ILogger<OperatorsController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _service.GetAllAsync();
-            return Ok(result);
+            try
+            {
+                var result = await _service.GetAllAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch operators");
+                return StatusCode(500, new { message = "Failed to load operators." });
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _service.GetByIdAsync(id);
-            return Ok(result);
+            try
+            {
+                var result = await _service.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch operator {Id}", id);
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         [HttpPost("create")]
@@ -43,22 +61,41 @@ namespace TMS.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create operator");
+                return StatusCode(500, new { message = "An unexpected error occurred while creating the operator." });
+            }
         }
-
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateOperatorDto dto)
         {
-            await _service.UpdateAsync(id, dto);
-            return NoContent();
+            try
+            {
+                await _service.UpdateAsync(id, dto);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update operator {Id}", id);
+                return StatusCode(500, new { message = "Failed to update operator." });
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _service.DeleteAsync(id);
-            return NoContent();
+            try
+            {
+                await _service.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete operator {Id}", id);
+                return StatusCode(500, new { message = "Failed to delete operator." });
+            }
         }
     }
 }
-
