@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using TMS.Application.DTOs.Ticket;
+using TMS.Application.Exceptions;
 using TMS.Application.Interfaces;
 using TMS.Application.Interfaces.Persistence;
 using TMS.Application.Interfaces.Repositories;
@@ -67,60 +68,45 @@ namespace TMS.Application.Services
             }
         }
 
-        //public async Task<TicketDto> CreateTicketAsync(CreateTicketDto dto)
-        //{
-        //    try
-        //    {
-        //        if (dto.TripId <= 0)
-        //            throw new ArgumentException("A valid TripId is required to create a ticket.");
-
-        //        string ticketCode = await GenerateUniqueCode("TKT-", t => t.TicketCode);
-        //        string seatCode = await GenerateUniqueCode("SEA-", t => t.SeatCode);
-
-        //        var ticket = new Ticket
-        //        {
-        //            TripId = dto.TripId,
-        //            PassengerName = dto.PassengerName,
-        //            PassengerContact = dto.PassengerContact,
-        //            SeatNumber = dto.SeatNumber,
-        //            SeatCode = dto.SeatCode ?? seatCode,
-        //            FarePaid = dto.FarePaid,
-        //            BookingDateTime = dto.BookingDateTime,
-        //            BookingCounterId = dto.BookingCounterId,
-        //            DepartureCounterId = dto.DepartureCounterId,
-        //            ArrivalCounterId = dto.ArrivalCounterId,
-        //            TicketCode = ticketCode,
-        //            Status = "Booked",
-        //            CreatedAt = DateTime.UtcNow,
-        //            CreatedBy = "System",
-        //            LastModifiedAt = DateTime.UtcNow,
-        //            LastModifiedBy = "System"
-        //        };
-
-        //        await _ticketRepository.AddAsync(ticket);
-        //        await _unitOfWork.CompleteAsync();
-        //        return _mapper.Map<TicketDto>(ticket);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new ApplicationException("Failed to create ticket.", ex);
-        //    }
-        //}
-
-
+        /// <summary>
+        /// Creates a ticket with an atomic seat-conflict check. Runs inside a
+        /// database transaction: re-reads the currently-booked seats for this
+        /// trip immediately before insert (closing the race window that the
+        /// SignalR soft-locks alone cannot close — those only coordinate
+        /// well-behaved clients, not the final write), and rolls back with a
+        /// SeatConflictException if anything requested is already taken.
+        ///
+        /// This is the layer that guarantees correctness during a rush: many
+        /// concurrent agents can all pass the soft-lock UI stage, but only one
+        /// of them will win the DB race for a given seat — everyone else gets
+        /// a clean 409 instead of a silent double-booking.
+        /// </summary>
         public async Task<TicketDto> CreateTicketAsync(CreateTicketDto dto, int? userId)
         {
+            if (dto.TripId <= 0)
+                throw new ArgumentException("A valid TripId is required to create a ticket.");
+
+            var requestedSeats = SplitSeats(dto.SeatNumber);
+            if (requestedSeats.Count == 0)
+                throw new ArgumentException("At least one seat must be selected.");
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                if (dto.TripId <= 0)
-                    throw new ArgumentException("A valid TripId is required to create a ticket.");
+                var alreadyBooked = await _ticketRepository.GetActiveBookedSeatNumbersAsync(dto.TripId);
+                var conflicts = requestedSeats.Where(s => alreadyBooked.Contains(s)).ToList();
+                if (conflicts.Count > 0)
+                {
+                    await transaction.RollbackAsync();
+                    throw new SeatConflictException(conflicts);
+                }
 
                 string ticketCode = await GenerateUniqueCode("TKT-", t => t.TicketCode);
                 string seatCode = await GenerateUniqueCode("SEA-", t => t.SeatCode);
 
                 var ticket = new Ticket
                 {
-                    UserId = userId ?? 0,   // ← THE FIX: 0 = no logged-in customer (e.g. counter staff booking on behalf of a walk-in)
+                    UserId = userId ?? 0,
                     TripId = dto.TripId,
                     PassengerName = dto.PassengerName,
                     PassengerContact = dto.PassengerContact,
@@ -141,29 +127,56 @@ namespace TMS.Application.Services
 
                 await _ticketRepository.AddAsync(ticket);
                 await _unitOfWork.CompleteAsync();
+                await transaction.CommitAsync();
+
                 return _mapper.Map<TicketDto>(ticket);
+            }
+            catch (SeatConflictException)
+            {
+                throw; // let the controller map this to 409 — don't wrap it
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new ApplicationException("Failed to create ticket.", ex);
             }
         }
 
+        /// <summary>
+        /// Same atomic-conflict pattern as CreateTicketAsync, but excludes the
+        /// ticket being edited from the conflict check — so an agent editing a
+        /// ticket doesn't get falsely blocked by their own previously-held seats.
+        /// </summary>
         public async Task<TicketDto?> UpdateTicketAsync(UpdateTicketDto dto)
         {
+            var requestedSeats = SplitSeats(dto.SeatNumber);
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var ticket = await _ticketRepository.GetByIdAsync(dto.Id);
-                if (ticket == null) return null;
+                if (ticket == null)
+                {
+                    await transaction.RollbackAsync();
+                    return null;
+                }
+
+                if (requestedSeats.Count > 0)
+                {
+                    var alreadyBooked = await _ticketRepository.GetActiveBookedSeatNumbersAsync(dto.TripId, excludeTicketId: dto.Id);
+                    var conflicts = requestedSeats.Where(s => alreadyBooked.Contains(s)).ToList();
+                    if (conflicts.Count > 0)
+                    {
+                        await transaction.RollbackAsync();
+                        throw new SeatConflictException(conflicts);
+                    }
+                }
 
                 ticket.TripId = dto.TripId;
                 ticket.PassengerName = dto.PassengerName;
                 ticket.PassengerContact = dto.PassengerContact;
                 ticket.SeatNumber = dto.SeatNumber;
-                //ticket.SeatCode = dto.SeatCode;
-                ticket.SeatCode = !string.IsNullOrEmpty(dto.SeatCode)
-    ? dto.SeatCode
-    : ticket.SeatCode;
+                ticket.SeatCode = !string.IsNullOrEmpty(dto.SeatCode) ? dto.SeatCode : ticket.SeatCode;
                 ticket.FarePaid = dto.FarePaid;
                 ticket.BookingDateTime = dto.BookingDateTime;
                 ticket.BookingCounterId = dto.BookingCounterId;
@@ -174,10 +187,17 @@ namespace TMS.Application.Services
 
                 _ticketRepository.Update(ticket);
                 await _unitOfWork.CompleteAsync();
+                await transaction.CommitAsync();
+
                 return _mapper.Map<TicketDto>(ticket);
+            }
+            catch (SeatConflictException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new ApplicationException($"Failed to update ticket with ID {dto.Id}.", ex);
             }
         }
@@ -274,7 +294,15 @@ namespace TMS.Application.Services
             }
         }
 
-        // ── Code generator ───────────────────────────────────────────────────
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        private static List<string> SplitSeats(string? seatNumberCsv)
+        {
+            if (string.IsNullOrWhiteSpace(seatNumberCsv)) return new List<string>();
+            return seatNumberCsv
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+        }
 
         private async Task<string> GenerateUniqueCode(string prefix, Func<Ticket, string?> selector)
         {
