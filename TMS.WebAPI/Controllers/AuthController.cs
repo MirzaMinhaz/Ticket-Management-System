@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using TMS.Application.DTOs;
 using TMS.Application.Exceptions;
 using TMS.Application.Interfaces.Services;
-using System.Security.Claims;
 
 namespace TMS.WebAPI.Controllers
 {
@@ -112,25 +114,72 @@ namespace TMS.WebAPI.Controllers
             }
         }
 
+        [EnableRateLimiting("LoginPolicy")]
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestDto request)
         {
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Login rejected before authentication: missing username or password.");
+                return BadRequest(ModelState);
+            }
+
             _logger.LogInformation("Login attempt for Username: {Username}", request.Username);
 
             try
             {
-                var result = await _authService.LoginAsync(request);
+                var result = await _authService.LoginStaffAsync(request);
                 _logger.LogInformation("User {Username} logged in successfully", request.Username);
                 return Ok(result);
             }
             catch (UnauthorizedException)
             {
-                _logger.LogWarning("Invalid login credentials provided for Username: {Username}", request.Username);
+                // Already logged with full detail inside AuthService.AuthenticateAsync — don't duplicate here.
                 return Unauthorized("Invalid credentials");
+            }
+            catch (ForbiddenException ex)
+            {
+                // Already logged with full detail inside AuthService.LoginStaffAsync — don't duplicate here.
+                return StatusCode(403, ex.Message);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected system crash during login attempt for Username: {Username}", request.Username);
+                return StatusCode(500, "Login failed due to a system error");
+            }
+        }
+
+        [EnableRateLimiting("LoginPolicy")]
+        [HttpPost("login-customer")]
+        public async Task<IActionResult> LoginCustomer(LoginRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Customer login rejected before authentication: missing username or password.");
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation("Customer login attempt for Username: {Username}", request.Username);
+
+            try
+            {
+                var result = await _authService.LoginAsync(request);
+                _logger.LogInformation("Customer {Username} logged in successfully", request.Username);
+                return Ok(result);
+            }
+            catch (UnauthorizedException)
+            {
+                // Already logged with detail inside AuthService.AuthenticateAsync — don't duplicate here.
+                return Unauthorized("Invalid credentials");
+            }
+            catch (ForbiddenException ex)
+            {
+                // Already logged with detail inside AuthService.LoginAsync — don't duplicate here.
+                return StatusCode(403, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected system crash during customer login attempt for Username: {Username}", request.Username);
                 return StatusCode(500, "Login failed due to a system error");
             }
         }

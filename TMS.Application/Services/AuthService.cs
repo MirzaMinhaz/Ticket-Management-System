@@ -1,9 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using TMS.Application.DTOs;
 using TMS.Application.Exceptions;
 using TMS.Application.Interfaces.Persistence;
@@ -17,11 +21,23 @@ namespace TMS.Application.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _config;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IUserRepository userRepository, IConfiguration config)
+        // Roles allowed to log into the staff portal. Customers are
+        // authenticated successfully but rejected here with ForbiddenException.
+        private static readonly string[] StaffPortalRoles =
+        {
+            Roles.Admin,
+            Roles.Manager,
+            Roles.StationAgent,
+            Roles.CounterAgent
+        };
+
+        public AuthService(IUserRepository userRepository, IConfiguration config, ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _config = config;
+            _logger = logger;
         }
 
         // NOTE: kept only for initial system bootstrap (creating the very first
@@ -90,22 +106,83 @@ namespace TMS.Application.Services
             };
         }
 
-        public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
+        // Shared credential verification. The EXCEPTION message shown to the
+        // client is always the same generic "Invalid credentials" (so we never
+        // leak whether a username exists) — but internally we log the precise
+        // reason, so ops/devs can actually debug failed logins from the log file.
+        private async Task<User> AuthenticateAsync(LoginRequestDto request, string portalTag)
         {
             var user = await _userRepository.GetByUsernameAsync(request.Username);
 
-            // Credentials ভুল হলে সরাসরি UnauthorizedException থ্রো হবে (কোনো catch ব্লক দ্বারা Wrapped হবে না)
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            if (user == null)
             {
+                _logger.LogWarning(
+                    "[{Portal}] Login failed for Username: {Username}. Reason: No user found with this username.",
+                    portalTag, request.Username);
                 throw new UnauthorizedException("Invalid credentials");
             }
 
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            {
+                _logger.LogWarning(
+                    "[{Portal}] Login failed for Username: {Username}. Reason: Password mismatch (UserId: {UserId}, Role: {Role}).",
+                    portalTag, request.Username, user.Id, user.Role);
+                throw new UnauthorizedException("Invalid credentials");
+            }
+
+            return user;
+        }
+
+        private AuthResponseDto BuildAuthResponse(User user)
+        {
             return new AuthResponseDto
             {
                 UserId = user.Id,
                 Username = user.Username,
                 Token = GenerateJwtToken(user)
             };
+        }
+
+        // Customer-facing login: credentials must be valid AND the user's role
+        // must be Customer. Staff accounts are rejected here, mirroring
+        // LoginStaffAsync's portal restriction — this is now enforced server-side,
+        // not just in the Angular component.
+        public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
+        {
+            var user = await AuthenticateAsync(request, "CustomerPortal");
+
+            if (user.Role != Roles.Customer)
+            {
+                _logger.LogWarning(
+                    "[CustomerPortal] Login rejected for Username: {Username} (UserId: {UserId}). Reason: Role '{Role}' is not permitted to access the customer portal.",
+                    user.Username, user.Id, user.Role);
+
+                throw new ForbiddenException(
+                    $"Role '{user.Role}' is not permitted to access the customer portal.");
+            }
+
+            return BuildAuthResponse(user);
+        }
+
+        // Staff-portal login: credentials must be valid AND the user's role
+        // must be one of the staff portal roles. Otherwise ForbiddenException
+        // is thrown — a real, server-side, logged rejection, not a client-side
+        // UI decision.
+        public async Task<AuthResponseDto> LoginStaffAsync(LoginRequestDto request)
+        {
+            var user = await AuthenticateAsync(request, "StaffPortal");
+
+            if (!StaffPortalRoles.Contains(user.Role))
+            {
+                _logger.LogWarning(
+                    "[StaffPortal] Login rejected for Username: {Username} (UserId: {UserId}). Reason: Role '{Role}' is not permitted to access the staff portal.",
+                    user.Username, user.Id, user.Role);
+
+                throw new ForbiddenException(
+                    $"Role '{user.Role}' is not permitted to access the staff portal.");
+            }
+
+            return BuildAuthResponse(user);
         }
 
         private string GenerateJwtToken(User user)

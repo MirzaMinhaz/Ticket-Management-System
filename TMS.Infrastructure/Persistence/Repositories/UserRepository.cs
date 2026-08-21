@@ -16,19 +16,27 @@ namespace TMS.Infrastructure.Persistence.Repositories
 
         public async Task<User?> GetByIdAsync(int id)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<User> GetByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<User> GetByUsernameAsync(string username) // ✅ Implementation
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Username == username);
         }
 
+        // AddAsync / UpdateAsync / DeleteAsync unchanged — these need tracking,
+        // since they modify the entity. Don't add AsNoTracking here.
         public async Task AddAsync(User user)
         {
             _context.Users.Add(user);

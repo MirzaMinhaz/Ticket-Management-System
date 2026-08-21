@@ -1,6 +1,8 @@
 ﻿// TMS.WebAPI/Program.cs
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +55,9 @@ try
     // ── Seat lock background purge ────────────────────────────────────────────────
     builder.Services.AddHostedService<SeatLockPurgeService>();
 
+    // ── DB warm-up (mitigates cold-start delay on first request after restart) ────
+    builder.Services.AddHostedService<DatabaseWarmupService>();
+
     // ── JWT Auth ──────────────────────────────────────────────────────────────────
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -100,6 +105,33 @@ try
                   .AllowCredentials());   // ← REQUIRED for SignalR WebSocket handshake
     });
 
+    // ── Rate Limiting (brute-force login protection) ───────────────────────────────
+    builder.Services.AddRateLimiter(options =>
+    {
+        // Requests that get rejected return 429 Too Many Requests
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        // Policy: per IP address, max 5 login attempts per 5-minute window.
+        // Fixed window = simple, predictable — resets fully every 5 minutes.
+        options.AddPolicy("LoginPolicy", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0 // don't queue extra requests — reject immediately
+                }));
+
+        options.OnRejected = (context, cancellationToken) =>
+        {
+            var ip = context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            Log.Warning("Rate limit exceeded for IP: {IpAddress} on path: {Path}", ip, context.HttpContext.Request.Path);
+            return ValueTask.CompletedTask;
+        };
+
+    });
+
     // ─────────────────────────────────────────────────────────────────────────────
     var app = builder.Build();
 
@@ -119,6 +151,7 @@ try
     app.UseCors("AllowAngular");
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.MapControllers();
 
