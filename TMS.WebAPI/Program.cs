@@ -21,6 +21,7 @@ using TMS.API.Hubs;
 using TMS.WebAPI.BackgroundServices;
 using Serilog;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Serilog Logger Setup ──────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ try
 
     // ── Application & Infrastructure ─────────────────────────────────────────────
     builder.Services.AddApplicationServices();
+    builder.Services.AddMemoryCache();
     builder.Services.AddInfrastructureServices(builder.Configuration);
 
     builder.Services.AddDbContext<TicketManagementDbContext>(options =>
@@ -99,11 +101,26 @@ try
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowAngular", policy =>
-            policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+            policy.WithOrigins("http://localhost:4200", "https://localhost:4200", "http://localhost:4500", "https://localhost:4500")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials());   // ← REQUIRED for SignalR WebSocket handshake
     });
+
+    //builder.Services.AddCors(options =>
+    //{
+    //    options.AddPolicy("AllowAngular", policy =>
+    //    {
+    //        policy
+    //            .WithOrigins(
+    //                "http://localhost:4500",
+    //                "http://192.168.1.100:4500"
+    //            )
+    //            .AllowAnyHeader()
+    //            .AllowAnyMethod()
+    //            .AllowCredentials();
+    //    });
+    //});
 
     // ── Rate Limiting (brute-force login protection) ───────────────────────────────
     builder.Services.AddRateLimiter(options =>
@@ -118,7 +135,7 @@ try
                 partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = 5,
+                    PermitLimit = 20,
                     Window = TimeSpan.FromMinutes(5),
                     QueueLimit = 0 // don't queue extra requests — reject immediately
                 }));
@@ -139,13 +156,16 @@ try
     // Intercepts and logs all incoming HTTP requests automatically
     app.UseSerilogRequestLogging();
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    //if (app.Environment.IsDevelopment())
+    //{
+    //    app.UseSwagger();
+    //    app.UseSwaggerUI();
+    //}
 
-    app.UseHttpsRedirection();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+    //app.UseHttpsRedirection();
 
     // CRITICAL ORDER: CORS → Auth → Endpoints
     app.UseCors("AllowAngular");

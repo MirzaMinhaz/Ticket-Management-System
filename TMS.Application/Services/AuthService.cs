@@ -15,6 +15,7 @@ using TMS.Application.Interfaces.Services;
 using TMS.Domain.Constants;
 using TMS.Domain.Entities;
 
+
 namespace TMS.Application.Services
 {
     public class AuthService : IAuthService
@@ -22,6 +23,7 @@ namespace TMS.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _config;
         private readonly ILogger<AuthService> _logger;
+        private readonly ILoginAttemptTracker _loginAttemptTracker;
 
         // Roles allowed to log into the staff portal. Customers are
         // authenticated successfully but rejected here with ForbiddenException.
@@ -33,11 +35,12 @@ namespace TMS.Application.Services
             Roles.CounterAgent
         };
 
-        public AuthService(IUserRepository userRepository, IConfiguration config, ILogger<AuthService> logger)
+        public AuthService(IUserRepository userRepository, IConfiguration config, ILogger<AuthService> logger, ILoginAttemptTracker loginAttemptTracker)
         {
             _userRepository = userRepository;
             _config = config;
             _logger = logger;
+            _loginAttemptTracker = loginAttemptTracker;
         }
 
         // NOTE: kept only for initial system bootstrap (creating the very first
@@ -112,24 +115,40 @@ namespace TMS.Application.Services
         // reason, so ops/devs can actually debug failed logins from the log file.
         private async Task<User> AuthenticateAsync(LoginRequestDto request, string portalTag)
         {
+            // Lock check সবার আগে — DB query/BCrypt চালানোর আগেই
+            if (_loginAttemptTracker.IsLocked(request.Username))
+            {
+                var remaining = _loginAttemptTracker.GetRemainingLockTime(request.Username) ?? TimeSpan.FromMinutes(5);
+                _logger.LogWarning(
+                    "[{Portal}] Login blocked for Username: {Username}. Account temporarily locked due to repeated failed attempts. Retry after: {RemainingSeconds}s",
+                    portalTag, request.Username, (int)remaining.TotalSeconds);
+
+                throw new AccountLockedException("Too many failed attempts. Please try again later.", remaining);
+            }
+
             var user = await _userRepository.GetByUsernameAsync(request.Username);
 
-            if (user == null)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                _logger.LogWarning(
-                    "[{Portal}] Login failed for Username: {Username}. Reason: No user found with this username.",
-                    portalTag, request.Username);
+                _loginAttemptTracker.RegisterFailedAttempt(request.Username);
+
+                if (user == null)
+                {
+                    _logger.LogWarning(
+                        "[{Portal}] Login failed for Username: {Username}. Reason: No user found with this username.",
+                        portalTag, request.Username);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "[{Portal}] Login failed for Username: {Username}. Reason: Password mismatch (UserId: {UserId}, Role: {Role}).",
+                        portalTag, request.Username, user.Id, user.Role);
+                }
+
                 throw new UnauthorizedException("Invalid credentials");
             }
 
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            {
-                _logger.LogWarning(
-                    "[{Portal}] Login failed for Username: {Username}. Reason: Password mismatch (UserId: {UserId}, Role: {Role}).",
-                    portalTag, request.Username, user.Id, user.Role);
-                throw new UnauthorizedException("Invalid credentials");
-            }
-
+            _loginAttemptTracker.ResetAttempts(request.Username); // সফল লগইনে কাউন্টার রিসেট
             return user;
         }
 

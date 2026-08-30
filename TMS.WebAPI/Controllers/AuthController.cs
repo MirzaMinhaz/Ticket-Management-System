@@ -142,6 +142,11 @@ namespace TMS.WebAPI.Controllers
                 // Already logged with full detail inside AuthService.LoginStaffAsync — don't duplicate here.
                 return StatusCode(403, ex.Message);
             }
+            catch (AccountLockedException ex)
+            {
+                // Already logged with detail inside AuthService.AuthenticateAsync — don't duplicate here.
+                return StatusCode(429, ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected system crash during login attempt for Username: {Username}", request.Username);
@@ -176,6 +181,11 @@ namespace TMS.WebAPI.Controllers
             {
                 // Already logged with detail inside AuthService.LoginAsync — don't duplicate here.
                 return StatusCode(403, ex.Message);
+            }
+            catch (AccountLockedException ex)
+            {
+                // Already logged with detail inside AuthService.AuthenticateAsync — don't duplicate here.
+                return StatusCode(429, ex.Message);
             }
             catch (Exception ex)
             {
