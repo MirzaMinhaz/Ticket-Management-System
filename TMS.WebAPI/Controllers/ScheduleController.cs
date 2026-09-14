@@ -67,5 +67,18 @@ namespace TMS.API.Controllers
             await _scheduleService.DeleteScheduleAsync(id);
             return NoContent();
         }
+
+        [HttpPatch("{id}/fare")]
+        public async Task<ActionResult<ScheduleDto>> UpdateFare(int id, [FromBody] UpdateFareDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var updated = await _scheduleService.UpdateBaseFareAsync(id, dto.BaseFare);
+            if (updated == null)
+                return NotFound(new { message = $"Schedule {id} not found." });
+
+            return Ok(updated);
+        }
     }
 }

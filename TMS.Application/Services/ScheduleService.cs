@@ -93,6 +93,20 @@ namespace TMS.Application.Services
             await _scheduleRepository.UpdateAsync(existingSchedule);
         }
 
+        public async Task<ScheduleDto?> UpdateBaseFareAsync(int scheduleId, decimal baseFare)
+        {
+            var schedule = await _scheduleRepository.GetByIdAsync(scheduleId);
+            if (schedule == null) return null;
+
+            schedule.BaseFare = baseFare;
+            schedule.LastModifiedAt = DateTime.UtcNow;
+            schedule.LastModifiedBy = "System";
+
+            await _scheduleRepository.UpdateAsync(schedule); // ← was: _scheduleRepository.Update(schedule);
+            await _unitOfWork.CompleteAsync();
+            return _mapper.Map<ScheduleDto>(schedule);
+        }
+
         public async Task DeleteScheduleAsync(int id)
         {
             await _scheduleRepository.DeleteAsync(id);

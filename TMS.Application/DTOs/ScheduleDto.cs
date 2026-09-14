@@ -47,4 +47,11 @@ namespace TMS.Application.DTOs.Schedule
         public string RouteName { get; set; }
         public string VehicleName { get; set; }
     }
+
+    // For updating only the base fare of a Schedule (used by the Fare Matrix screen)
+    public class UpdateFareDto
+    {
+        [Range(0, double.MaxValue, ErrorMessage = "Fare must be a non-negative value.")]
+        public decimal BaseFare { get; set; }
+    }
 }
