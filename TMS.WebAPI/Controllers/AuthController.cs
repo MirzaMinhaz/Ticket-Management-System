@@ -16,11 +16,13 @@ namespace TMS.WebAPI.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IOtpService _otpService;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger, IOtpService otpService)
         {
             _authService = authService;
             _logger = logger;
+            _otpService = otpService;
         }
 
         [Authorize(Roles = "Admin")]
@@ -191,6 +193,47 @@ namespace TMS.WebAPI.Controllers
             {
                 _logger.LogError(ex, "Unexpected system crash during customer login attempt for Username: {Username}", request.Username);
                 return StatusCode(500, "Login failed due to a system error");
+            }
+        }
+
+
+        [EnableRateLimiting("LoginPolicy")]
+        [HttpPost("request-customer-otp")]
+        public async Task<IActionResult> RequestCustomerOtp(
+    RequestCustomerOtpDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var otp = await _otpService.GenerateAndSaveCustomerOtpAsync(
+                    request.Username);
+
+                // TEMPORARY: Development testing only
+                return Ok(new
+                {
+                    Message = "OTP generated successfully.",
+                    Otp = otp
+                });
+            }
+            catch (UnauthorizedException)
+            {
+                return Unauthorized("Invalid customer credentials.");
+            }
+            catch (ForbiddenException ex)
+            {
+                return StatusCode(403, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error while generating customer OTP.");
+
+                return StatusCode(
+                    500,
+                    "Unable to generate OTP.");
             }
         }
 

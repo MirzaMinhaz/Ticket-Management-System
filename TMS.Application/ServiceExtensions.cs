@@ -26,6 +26,7 @@ namespace TMS.Application
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ITicketService, TicketService>();
             services.AddScoped<ITripService, TripService>();
+            services.AddScoped<IOtpService, OtpService>();
             services.AddSingleton<ISeatLockService, SeatLockService>();
             services.AddSingleton<ILoginAttemptTracker, LoginAttemptTracker>();
             return services;

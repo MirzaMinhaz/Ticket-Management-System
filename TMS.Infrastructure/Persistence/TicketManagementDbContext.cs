@@ -22,6 +22,7 @@ namespace TMS.Infrastructure.Persistence
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<TicketCounter> TicketCounters { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<UserOtp> UserOtps { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Trip> Trips { get; set; }
 
@@ -355,6 +356,64 @@ namespace TMS.Infrastructure.Persistence
                       .WithOne(c => c.User)
                       .HasForeignKey(c => c.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+
+            // --- Configure UserOtp entity ---
+            modelBuilder.Entity<UserOtp>(entity =>
+            {
+                entity.ToTable("UserOtps");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.OtpHash)
+                      .IsRequired()
+                      .HasMaxLength(255);
+
+                entity.Property(e => e.OtpType)
+                      .IsRequired()
+                      .HasMaxLength(50);
+
+                entity.Property(e => e.ExpiresAt)
+                      .IsRequired();
+
+                entity.Property(e => e.IsUsed)
+                      .IsRequired();
+
+                entity.Property(e => e.AttemptCount)
+                      .IsRequired();
+
+                entity.Property(e => e.CreatedAt)
+                      .IsRequired();
+
+                entity.Property(e => e.CreatedBy)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(e => e.LastModifiedAt)
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastModifiedBy)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                // User -> UserOtp relationship
+                entity.HasOne(otp => otp.User)
+                      .WithMany(user => user.UserOtps)
+                      .HasForeignKey(otp => otp.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Index for OTP lookup
+                entity.HasIndex(otp => new
+                {
+                    otp.UserId,
+                    otp.OtpType,
+                    otp.IsUsed,
+                    otp.ExpiresAt
+                });
             });
 
             // --- Configure Vehicle entity ---

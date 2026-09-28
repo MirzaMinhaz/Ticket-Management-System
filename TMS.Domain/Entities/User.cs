@@ -18,6 +18,8 @@ namespace TMS.Domain.Entities
         public ICollection<Ticket> Tickets { get; set; } = new HashSet<Ticket>();
         // Navigation property: A user can make many comments
         public ICollection<Comment> Comments { get; set; } = new HashSet<Comment>();
+        public ICollection<UserOtp> UserOtps { get; set; }
+            = new List<UserOtp>();
 
         public User()
         {

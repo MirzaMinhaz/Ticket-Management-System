@@ -38,6 +38,7 @@ namespace TMS.Infrastructure
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<ISeatRepository, SeatRepository>();
             services.AddScoped<ITripRepository, TripRepository>();
+            services.AddScoped<IUserOtpRepository, UserOtpRepository>();
 
 
 
@@ -47,12 +48,6 @@ namespace TMS.Infrastructure
             // services.AddScoped<IScheduleRepository, ScheduleRepository>();
             // services.AddScoped<ITicketBookingRepository, TicketBookingRepository>();
             // services.AddScoped<IUserRepository, UserRepository>();
-
-
-            // === NEW: Register IUnitOfWork and its implementation ===
-            // This is the missing piece!
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
-            // =======================================================
         }
     }
 }
