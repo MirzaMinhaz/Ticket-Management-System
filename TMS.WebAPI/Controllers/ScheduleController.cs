@@ -80,5 +80,12 @@ namespace TMS.API.Controllers
 
             return Ok(updated);
         }
+
+        [HttpGet("fare-history")]
+        public async Task<ActionResult<IEnumerable<FareHistoryDto>>> GetFareHistory([FromQuery] int take = 5)
+        {
+            var items = await _scheduleService.GetRecentFareHistoryAsync(take);
+            return Ok(items);
+        }
     }
 }

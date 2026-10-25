@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMS.Application.DTOs.Route;
@@ -15,11 +16,16 @@ namespace TMS.Application.Services
         private readonly IScheduleRepository _scheduleRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        
+        private readonly IFareHistoryRepository _fareHistoryRepository;
 
-        public ScheduleService(IScheduleRepository scheduleRepository, IUnitOfWork unitOfWork, IMapper mapper)
+        public ScheduleService(
+            IScheduleRepository scheduleRepository,
+            IFareHistoryRepository fareHistoryRepository,
+            IUnitOfWork unitOfWork,
+            IMapper mapper)
         {
             _scheduleRepository = scheduleRepository;
+            _fareHistoryRepository = fareHistoryRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
@@ -95,16 +101,55 @@ namespace TMS.Application.Services
 
         public async Task<ScheduleDto?> UpdateBaseFareAsync(int scheduleId, decimal baseFare)
         {
-            var schedule = await _scheduleRepository.GetByIdAsync(scheduleId);
+            if (baseFare < 0 || baseFare >= 5000)
+                throw new ApplicationException("Fare must be between 0 and 4999.");
+
+            var schedule = await _scheduleRepository.GetByIdWithDetailsAsync(scheduleId);
             if (schedule == null) return null;
+
+            var oldFare = schedule.BaseFare;
+
+            if (oldFare != baseFare)
+            {
+                await _fareHistoryRepository.AddAsync(new FareHistory
+                {
+                    ScheduleId = schedule.Id,
+                    OperatorName = schedule.Vehicle.Operator.Name,
+                    VehicleName = schedule.Vehicle.Model ?? schedule.Vehicle.VehicleCode,
+                    RouteCode = $"{schedule.Route.DepartureLocationCode}-{schedule.Route.DestinationLocationCode}",
+                    PreviousFare = oldFare,
+                    CurrentFare = baseFare,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = "System",
+                    LastModifiedAt = DateTime.UtcNow,
+                    LastModifiedBy = "System"
+                });
+            }
 
             schedule.BaseFare = baseFare;
             schedule.LastModifiedAt = DateTime.UtcNow;
             schedule.LastModifiedBy = "System";
 
-            await _scheduleRepository.UpdateAsync(schedule); // ← was: _scheduleRepository.Update(schedule);
-            await _unitOfWork.CompleteAsync();
+            await _scheduleRepository.UpdateAsync(schedule);
+            await _unitOfWork.CompleteAsync();   // schedule + history together
+
             return _mapper.Map<ScheduleDto>(schedule);
+        }
+
+        public async Task<IEnumerable<FareHistoryDto>> GetRecentFareHistoryAsync(int take = 5)
+        {
+            take = Math.Clamp(take, 1, 50);
+            var rows = await _fareHistoryRepository.GetRecentAsync(take);
+
+            return rows.Select(x => new FareHistoryDto
+            {
+                Id = x.Id,
+                OperatorName = x.OperatorName,
+                VehicleName = x.VehicleName,
+                PreviousFare = x.PreviousFare,
+                CurrentFare = x.CurrentFare,
+                CreatedAt = x.CreatedAt
+            }).ToList();
         }
 
         public async Task DeleteScheduleAsync(int id)
@@ -138,6 +183,8 @@ namespace TMS.Application.Services
 
             return $"SCH-{nextNumber:D3}"; // Formats as SCH-001, SCH-002, etc.
         }
+
+
 
     }
 }

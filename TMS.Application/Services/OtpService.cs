@@ -68,5 +68,55 @@ namespace TMS.Application.Services
 
             return otp;
         }
+
+        public async Task<bool> VerifyCustomerOtpAsync(
+    string username,
+    string otp,
+    CancellationToken cancellationToken = default)
+        {
+            var user = await _userRepository.GetByUsernameAsync(username);
+
+            if (user == null)
+                throw new UnauthorizedException(
+                    "Invalid customer credentials.");
+
+            if (user.Role != Roles.Customer)
+                throw new ForbiddenException(
+                    "Only customers can verify customer OTP.");
+
+            var userOtp = await _userOtpRepository.GetLatestActiveOtpAsync(
+                user.Id,
+                "CustomerLogin",
+                cancellationToken);
+
+            if (userOtp == null)
+                return false;
+
+            if (userOtp.ExpiresAt <= DateTime.UtcNow)
+                return false;
+
+            var isValid = BCrypt.Net.BCrypt.Verify(
+                otp,
+                userOtp.OtpHash);
+
+            if (!isValid)
+            {
+                userOtp.AttemptCount++;
+
+                await _userOtpRepository.SaveChangesAsync(
+                    cancellationToken);
+
+                return false;
+            }
+
+            userOtp.IsUsed = true;
+            userOtp.LastModifiedAt = DateTime.UtcNow;
+            userOtp.LastModifiedBy = "System";
+
+            await _userOtpRepository.SaveChangesAsync(
+                cancellationToken);
+
+            return true;
+        }
     }
 }

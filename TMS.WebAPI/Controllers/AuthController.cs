@@ -237,6 +237,51 @@ namespace TMS.WebAPI.Controllers
             }
         }
 
+
+        [EnableRateLimiting("LoginPolicy")]
+        [HttpPost("verify-customer-otp")]
+        public async Task<IActionResult> VerifyCustomerOtp(
+    VerifyCustomerOtpDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var isValid = await _otpService.VerifyCustomerOtpAsync(
+                    request.Username,
+                    request.Otp);
+
+                if (!isValid)
+                {
+                    return Unauthorized("Invalid or expired OTP.");
+                }
+
+                return Ok(new
+                {
+                    Message = "OTP verified successfully."
+                });
+            }
+            catch (UnauthorizedException)
+            {
+                return Unauthorized("Invalid customer credentials.");
+            }
+            catch (ForbiddenException ex)
+            {
+                return StatusCode(403, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error while verifying customer OTP.");
+
+                return StatusCode(
+                    500,
+                    "Unable to verify OTP.");
+            }
+        }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetMe()

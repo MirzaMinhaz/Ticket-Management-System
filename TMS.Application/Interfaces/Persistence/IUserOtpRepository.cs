@@ -10,6 +10,11 @@ namespace TMS.Application.Interfaces.Persistence
             UserOtp userOtp,
             CancellationToken cancellationToken = default);
 
+        Task<UserOtp> GetLatestActiveOtpAsync(
+            int userId,
+            string otpType,
+            CancellationToken cancellationToken = default);
+
         Task SaveChangesAsync(
             CancellationToken cancellationToken = default);
     }

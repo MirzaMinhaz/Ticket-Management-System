@@ -8,5 +8,10 @@ namespace TMS.Application.Interfaces.Services
         Task<string> GenerateAndSaveCustomerOtpAsync(
             string username,
             CancellationToken cancellationToken = default);
+
+        Task<bool> VerifyCustomerOtpAsync(
+            string username,
+            string otp,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -12,5 +12,6 @@ namespace TMS.Application.Interfaces.Repositories
         Task AddAsync(Schedule schedule);
         Task UpdateAsync(Schedule schedule);
         Task<bool> DeleteAsync(int id);
+        Task<Schedule?> GetByIdWithDetailsAsync(int id);
     }
 }

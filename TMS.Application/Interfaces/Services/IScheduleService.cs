@@ -12,5 +12,6 @@ namespace TMS.Application.Interfaces.Services
         Task UpdateScheduleAsync(int id, UpdateScheduleDto updateDto);
         Task<ScheduleDto?> UpdateBaseFareAsync(int scheduleId, decimal baseFare); // ← add this line
         Task DeleteScheduleAsync(int id);
+        Task<IEnumerable<FareHistoryDto>> GetRecentFareHistoryAsync(int take = 5);
     }
 }

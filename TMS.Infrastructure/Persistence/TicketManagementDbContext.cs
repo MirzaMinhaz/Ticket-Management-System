@@ -25,6 +25,7 @@ namespace TMS.Infrastructure.Persistence
         public DbSet<UserOtp> UserOtps { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Trip> Trips { get; set; }
+        public DbSet<FareHistory> FareHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -226,6 +227,7 @@ namespace TMS.Infrastructure.Persistence
                       .HasForeignKey(ticket => ticket.TripId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
+
 
             // --- Configure Seat entity ---
             modelBuilder.Entity<Seat>(entity =>
@@ -470,6 +472,33 @@ namespace TMS.Infrastructure.Persistence
                 entity.HasIndex(c => c.TicketId);
                 entity.HasIndex(c => c.UserId);
                 entity.HasIndex(c => c.CreatedAt);
+            });
+
+            // --- Configure FareHistory entity ---
+            // --- Configure FareHistory entity ---
+            modelBuilder.Entity<FareHistory>(entity =>
+            {
+                entity.ToTable("FareHistories");
+
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+
+                entity.Property(e => e.OperatorName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.VehicleName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.RouteCode).IsRequired().HasMaxLength(50);
+
+                // decimal(18,2) is already applied by your global loop, so no column type needed here
+
+                entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.LastModifiedBy).IsRequired().HasMaxLength(100);
+
+                entity.HasOne(f => f.Schedule)
+                      .WithMany()
+                      .HasForeignKey(f => f.ScheduleId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // "Latest 5" query is ORDER BY CreatedAt DESC
+                entity.HasIndex(f => f.CreatedAt).IsDescending();
             });
         }
     }

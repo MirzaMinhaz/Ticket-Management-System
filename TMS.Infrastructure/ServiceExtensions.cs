@@ -39,6 +39,7 @@ namespace TMS.Infrastructure
             services.AddScoped<ISeatRepository, SeatRepository>();
             services.AddScoped<ITripRepository, TripRepository>();
             services.AddScoped<IUserOtpRepository, UserOtpRepository>();
+            services.AddScoped<IFareHistoryRepository, FareHistoryRepository>();
 
 
 

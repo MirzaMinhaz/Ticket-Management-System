@@ -86,5 +86,13 @@ namespace TMS.Infrastructure.Repositories
                 throw new ApplicationException("Failed to delete the schedule from the database.", ex);
             }
         }
+
+        public async Task<Schedule?> GetByIdWithDetailsAsync(int id)
+        {
+            return await _context.Schedules
+                .Include(s => s.Vehicle).ThenInclude(v => v.Operator)
+                .Include(s => s.Route)
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
     }
 }
