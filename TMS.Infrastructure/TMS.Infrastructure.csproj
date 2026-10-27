@@ -33,4 +33,8 @@
 	<ProjectReference Include="..\TMS.Application\TMS.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>
